@@ -33,3 +33,10 @@ proxy/_*.py
 docs-internal/
 session-context.json
 Deploy-Trackside.ps1
+
+# SECRET — the fine-grained PAT baked into private-channel builds so they can read the
+# private releases repo. Never commit this; a public build must never see it either
+# (Release-Trackside.ps1 aborts if TRACKSIDE_UPDATE_TOKEN is set in the shell).
+# The private release SCRIPT is deliberately not ignored: it lives on trackside-private,
+# which is never pushed, and merges only ever run main -> private.
+.trackside-update-token.txt
