@@ -300,10 +300,28 @@ categories, just a plainer style.
 
 ## Compatibility
 
+### Hachimi
+
 Trackside runs alongside Hachimi — when both are installed, Trackside takes over the shared UI
 tweaks (game speed, etc.) automatically, with no config changes needed. It is also compatible
 with [SparkCollectPlugin](https://github.com/xialight/SparkCollectPlugin), so you can run both
 at the same time.
+
+### Linux
+
+Trackside can run on Linux and requires the following dependencies:
+
+- **Wine/Proton** variant that can run the game without Trackside.
+  - **DXVK** — Only for Wine, included with Proton (Trackside does not currently run with WineD3D)
+
+In your Steam library, navigate to the game and right click and navigate to **Properties → General → Launch Options**
+and paste the following into the launch options:
+
+```
+WINEDLLOVERRIDES="version.dll=n,b,trackside_version.dll=n" %command%
+```
+
+The game should open with Trackside successfully.
 
 ---
 
