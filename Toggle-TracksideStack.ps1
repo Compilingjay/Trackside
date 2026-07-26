@@ -8,8 +8,10 @@
 
         version.dll           = Trackside's proxy  -> loads trackside.dll
                                                   -> forwards version APIs to trackside_version.dll
-        trackside_version.dll = the genuine Windows version.dll (standalone),
-                                OR Hachimi's proxy when running Hachimi (reads hachimi\config.json)
+        trackside_version.dll = the genuine Windows version.dll (the proxy's forward target).
+                                NOTE: Hachimi does NOT go here — it hooks the game at its own
+                                entry point (cri_mana_vpx.dll / UnityPlayer.dll / winhttp.dll),
+                                so the two stacks coexist without chaining or renaming.
         hachimi\              = Hachimi config + the plugins it load_libraries:
                                   horseACT.dll  (Hakuraku exporter)
                                   CarrotBlender.dll (Uma Launcher bridge)
@@ -55,7 +57,7 @@ $GameExe = 'UmamusumePrettyDerby.exe'
 $Items = @(
     'version.dll',            # Trackside proxy (master loader)
     'trackside.dll',          # Trackside overlay
-    'trackside_version.dll',  # genuine version.dll (standalone) OR Hachimi's proxy (Trackside forwards here)
+    'trackside_version.dll',  # genuine Windows version.dll — the proxy's forward target
     'hachimi'                 # Hachimi config + horseACT/Hakuraku + CarrotBlender
 )
 

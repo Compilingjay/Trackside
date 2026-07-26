@@ -20,6 +20,10 @@
                     for the same-tag hotfix check, so they must ship with the loose DLLs.
       4. PACKAGE  - Trackside.zip          = trackside.dll + version.dll + trackside_version.dll
                     Trackside+Hachimi.zip  = trackside_hh.dll (as trackside.dll) + version.dll
+                                             + trackside_version.dll (same 3 files; only the
+                                             overlay build differs). Hachimi installs at its OWN
+                                             hijack point (cri_mana_vpx/UnityPlayer/winhttp), so it
+                                             does NOT go in the trackside_version.dll slot.
       5. STAGE    - everything into release-v<version>\ alongside NOTES.md
       6. RELEASE  - create the git tag v<version>, then a GitHub release via gh with all
                     assets attached.
@@ -229,8 +233,9 @@ New-Zip (Join-Path $StageDir 'Trackside.zip') ([ordered]@{
     'trackside_version.dll' = (Join-Path $StageDir 'trackside_version.dll')
 })
 New-Zip (Join-Path $StageDir 'Trackside+Hachimi.zip') ([ordered]@{
-    'trackside.dll' = (Join-Path $StageDir 'trackside_hh.dll')
-    'version.dll'   = (Join-Path $StageDir 'version.dll')
+    'trackside.dll'         = (Join-Path $StageDir 'trackside_hh.dll')
+    'version.dll'           = (Join-Path $StageDir 'version.dll')
+    'trackside_version.dll' = (Join-Path $StageDir 'trackside_version.dll')
 })
 
 # --- notes -------------------------------------------------------------------

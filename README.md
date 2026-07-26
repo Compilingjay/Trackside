@@ -31,11 +31,12 @@ by Night DC (nighty3333)** - fully open source under MIT, with every feature in 
 4. Launch the game. Trackside loads itself - press **Insert** to show/hide the menu.
    Use **Windowed / Borderless** so the overlay is visible (not exclusive fullscreen).
 
-> **Running Hachimi too?** Use **`Trackside+Hachimi.zip`** (its `trackside.dll` is the
-> Hachimi-compatible build). It ships `version.dll` + `trackside.dll`; instead of a plain
-> `trackside_version.dll`, put **Hachimi's own proxy DLL there** (rename Hachimi's
-> `version.dll` to `trackside_version.dll`) and keep its `hachimi\` folder. Trackside's
-> proxy then forwards into Hachimi, so both boot in the right order. The included
+> **Running Hachimi too?** Use **`Trackside+Hachimi.zip`** — same three files as above, but its
+> `trackside.dll` is the Hachimi-compatible build (it detects hooks Hachimi already owns and
+> stands aside instead of fighting over them). Extract it the same way and **keep your existing
+> Hachimi install as-is**: Hachimi hooks the game at its own entry point (`cri_mana_vpx.dll`,
+> `UnityPlayer.dll` or `winhttp.dll`, depending on how you installed it), which is a different
+> file from Trackside's `version.dll`, so the two coexist without any renaming. The included
 > `Toggle-TracksideStack.ps1` can enable/disable the whole stack at once.
 
 > **Upgrading from Heaven?** Extract the zip over your install (it brings the three files
