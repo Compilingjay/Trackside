@@ -1806,6 +1806,9 @@ impl HeavenOverlay {
                                         Ctrl::Custom(Custom::SkillAdvisor) => {
                                             crate::skill_advisor::draw_panel(ui, cw);
                                         }
+                                        Ctrl::Custom(Custom::CareerLog) => {
+                                            career_log_panel(ui);
+                                        }
                                         Ctrl::Custom(Custom::UmaExtract) => {
                                             draw_uma_extract(ui);
                                         }
@@ -2120,6 +2123,9 @@ impl HeavenOverlay {
                                     Ctrl::Custom(Custom::SkillAdvisor) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
                                         crate::skill_advisor::draw_panel(ui, w);
+                                    }
+                                    Ctrl::Custom(Custom::CareerLog) => {
+                                        career_log_panel(ui);
                                     }
                                     Ctrl::Custom(Custom::UmaExtract) => {
                                         draw_uma_extract(ui);
@@ -3347,6 +3353,26 @@ fn draw_icon_dump_panel(ui: &Ui) {
 
 /// Veterans data.json export (UmaExtractor format): button + LIVE status line. The roster is
 /// captured from the Veteran List response packet; the button writes it verbatim.
+/// Career Log — enable toggle plus what's been captured so far.
+fn career_log_panel(ui: &Ui) {
+    let mut on = crate::settings::career_log();
+    if ui.checkbox("Save my careers to disk", &mut on) {
+        crate::settings::set_career_log(on);
+    }
+    if on {
+        let (careers, turns) = crate::career_log::stats();
+        let files = crate::career_log::files_on_disk();
+        ui.text_colored(DIM, format!("{files} saved \u{2014} {careers} started this session, {turns} turns written"));
+        match crate::career_log::latest() {
+            Some(l) => ui.text_colored(GOOD, l),
+            None => ui.text_colored(DIM, "Nothing captured yet \u{2014} start or continue a career."),
+        }
+    } else {
+        ui.text_colored(DIM, "Off \u{2014} careers are not being saved.");
+    }
+    ui.text_colored(DIM, "Folder: trackside-careers (next to the game .exe)");
+}
+
 fn draw_uma_extract(ui: &Ui) {
     let _wrap = ui.push_text_wrap_pos();
     if btn_primary(ui, "##umaextract", "Export veterans (data.json)") {

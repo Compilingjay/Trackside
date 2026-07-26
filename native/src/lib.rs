@@ -75,6 +75,9 @@ mod response_hook;
 // to <game>/trackside-idle/ for offline analysis. Fed from response_hook (results) + uma_bridge
 // (setups). Auth tokens stripped from setups; local files only.
 mod jp_idle;
+// Career Log — persists every training career turn-by-turn to <game>/trackside-careers/ as JSONL
+// (trimmed to model-relevant fields, auth tokens stripped). Fed from response_hook.
+mod career_log;
 mod selfupdate;
 mod settings;
 mod skill_advisor;

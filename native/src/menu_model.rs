@@ -67,6 +67,7 @@ pub enum Custom {
     Followers,       // Follower pruner — preview + paced removal of oldest-inactive followers
     RoomFinder,      // Room Match finder — auto-refresh the room list until a room matches the filters
     SkillAdvisor,    // End-of-career skill buy optimizer (manual Gameplay tab)
+    CareerLog,       // Career Log — toggle + on-disk/session status
     UmaExtract,      // Veterans data.json export (UmaExtractor format) — button + live status
     IconDump,        // In-process icon ripper — button + live status (About → Diagnostics)
     Affinity,        // Legacy Select succession-affinity numbers — enable + drag-to-place + size
@@ -187,6 +188,12 @@ pub fn model() -> Vec<Tab> {
         icon: '\u{E713}',
         blurb: "Auto-remove followers (open Friends -> Followers, then toggle on). Human-paced.",
         controls: vec![Ctrl::Toggle { id: "unf", label: "Auto-unfollow followers", get: crate::followers::is_enabled, set: crate::followers::set_enabled }],
+    });
+    gameplay.push(Section {
+        title: "Career log",
+        icon: '\u{E81C}',
+        blurb: "Saves each training career (turn by turn) to trackside-careers for later analysis. No account details are written, so these files are safe to share.",
+        controls: vec![Ctrl::Custom(Custom::CareerLog)],
     });
     tabs.push(Tab { name: "Gameplay", icon: '\u{E768}', sections: gameplay });
 

@@ -124,6 +124,10 @@ pub struct Settings {
     // always present so the JSON stays stable across builds.
     #[serde(default)]
     pub oracle: bool,
+    // Career Log: persist each training career to <game>/trackside-careers/. Default ON (passive,
+    // a few hundred KB per career, no credentials written).
+    #[serde(default = "default_true")]
+    pub career_log: bool,
     // Race freecam enabled.
     #[serde(default)]
     pub freecam: bool,
@@ -276,6 +280,7 @@ impl Default for Settings {
             theme_random: false,
             classic_menu: false,
             oracle: false,
+            career_log: true,
             freecam: false,
             telemetry: true,
             tele_main: true,
@@ -343,6 +348,17 @@ pub fn apply_on_boot() {
         *c = s;
     }
     APPLIED.store(true, Ordering::Relaxed);
+}
+
+/// Career Log — persist each training career to <game>/trackside-careers/ (default on).
+pub fn career_log() -> bool {
+    cache().lock().map(|c| c.career_log).unwrap_or(true)
+}
+pub fn set_career_log(on: bool) {
+    if let Ok(mut c) = cache().lock() {
+        c.career_log = on;
+        write_file(&c);
+    }
 }
 
 /// Team Trials in-process capture toggle (WinHTTP tap).
