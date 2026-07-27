@@ -50,6 +50,13 @@ const KEEP: &[&str] = &[
 ];
 
 static WRITTEN: AtomicU64 = AtomicU64::new(0);
+/// Most recent trained-chara payload seen on the wire, aliases already applied.
+///
+/// CACHE-AND-ATTACH, the same shape horseACT uses (it caches the array from a
+/// `RaceUtil.SetTrainedCharaData` hook). The deck/parent data and the race replay arrive by
+/// different routes — this packet, and the IL2CPP `RaceInfo` object respectively — so neither
+/// export is complete on its own. Caching here lets `race_export` attach it to the replay dump.
+static CACHED_TRAINED: Mutex<Option<J>> = Mutex::new(None);
 static LAST_SIG: Mutex<Option<u64>> = Mutex::new(None);
 
 fn now_ms() -> u128 {
@@ -146,6 +153,11 @@ pub fn note_response(bytes: &[u8]) {
     }
     let mut doc = J::Object(out);
     add_aliases(&mut doc);
+    if let Some(tc) = doc.get("trained_chara_array") {
+        if let Ok(mut c) = CACHED_TRAINED.lock() {
+            *c = Some(tc.clone());
+        }
+    }
     if let J::Object(m) = &mut doc {
         m.insert("horseACT_version".into(), J::String(VIEWER_VERSION.into()));
     }
@@ -174,4 +186,9 @@ pub fn note_response(bytes: &[u8]) {
 
 pub fn written() -> u64 {
     WRITTEN.load(Ordering::Relaxed)
+}
+
+/// The most recent trained-chara array seen, for `race_export` to attach to its replay dump.
+pub fn cached_trained_chara() -> Option<J> {
+    CACHED_TRAINED.lock().ok().and_then(|c| c.clone())
 }

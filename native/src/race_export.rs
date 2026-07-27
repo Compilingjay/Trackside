@@ -26,11 +26,19 @@ use serde_json::Value;
 use crate::htt_il2cpp as h;
 
 
-// The race viewer (hakuraku) shows an "outdated, go download the other tool" notice
-// unless the file declares this version key. We emit it so the viewer treats our
-// output as current and never points the user elsewhere. Bump to match the viewer's
-// expected current release.
+// The race viewer (hakuraku) shows an "outdated, go download the other tool" notice unless the file
+// declares a current version key. We declare what we ACTUALLY emit, never more:
+//
+//   * 1.1.7 when the deck/parent payload is attached (see `race_packet_export`), because that is
+//     what 1.1.6 and 1.1.7 added — "Once again dump trained_chara_data" and "Dump decks/parent info
+//     for CM races".
+//   * 1.1.4 otherwise. Career races legitimately have no trained-chara data (the field is NPCs and
+//     an in-progress career), so there the older number is simply accurate.
+//
+// Declaring 1.1.7 unconditionally would silence the notice while shipping nulls, which is worse than
+// the notice.
 const VIEWER_VERSION: &str = "1.1.4";
+const VIEWER_VERSION_WITH_TRAINED: &str = "1.1.7";
 
 /// Walk an arbitrary managed object to a JSON string (for one-shot RE/census of
 /// unknown object layouts, e.g. the career acquired-skill list). Safe to call from
@@ -47,10 +55,25 @@ pub fn dump_object_json(addr: usize) -> String {
     .unwrap_or_else(|_| "<err>".into())
 }
 
-/// Stamp the viewer version key onto the root object.
+/// Stamp the viewer version, attaching the cached deck/parent payload when we have one.
+///
+/// `<TrainedCharaData>` on the live `RaceInfo` is NULL at our capture point, so the replay dump
+/// cannot carry decks or parents by itself. The response packet does carry them, so we attach the
+/// cached copy here and only then claim the newer format.
 fn stamp_version(v: &mut Value) {
     if let Value::Object(map) = v {
-        map.insert("horseACT_version".to_string(), Value::String(VIEWER_VERSION.to_string()));
+        let attached = crate::race_packet_export::cached_trained_chara();
+        let version = if let Some(tc) = attached {
+            if let Ok(val) = serde_json::from_str::<Value>(&tc.to_string()) {
+                map.insert("trained_chara_array".to_string(), val);
+                VIEWER_VERSION_WITH_TRAINED
+            } else {
+                VIEWER_VERSION
+            }
+        } else {
+            VIEWER_VERSION
+        };
+        map.insert("horseACT_version".to_string(), Value::String(version.to_string()));
     }
 }
 
