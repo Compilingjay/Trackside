@@ -99,6 +99,7 @@ mod startup_probe;
 mod ui_tempo;
 mod uma_bridge;
 // Native, in-process stand-ins for the companion plugins (horseACT export, CarrotBlender feed).
+pub mod race_packet_export;
 mod friendlyplugins;
 mod update;
 

@@ -52,6 +52,7 @@ unsafe fn on_response(ret: *mut c_void) {
     crate::jp_idle::note_response(slice);
     // Career Log — one JSONL line per career turn (own content gate + settings toggle inside).
     crate::career_log::note_response(slice);
+    crate::race_packet_export::note_response(slice);
 
     let has_race = contains(slice, b"race_horse_data");
     let has_cont = contains(slice, b"available_continue_num");
