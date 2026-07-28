@@ -466,8 +466,14 @@ fn compute_rating_breakdown(info: &CharaInfo, extra_skill_score: i32) -> RatingB
 }
 
 fn build_candidate_pool(info: &CharaInfo, offered_ids: &HashSet<i32>) -> (Vec<PoolItem>, i32) {
-    let budget = info.skill_point;
-    let owned_ids: HashSet<i32> = info.skill_array.iter().map(|s| s.skill_id).collect();
+    // The captured packet is a SNAPSHOT from before the player touched the screen. If they've
+    // hand-picked skills since, that SP is already committed and those skills are already theirs —
+    // so budget from the LIVE remaining and treat live picks as owned. Without this the optimizer
+    // re-recommends skills the player already selected and spends SP twice, padding the projected
+    // rating (they then land a few hundred short of the target). Both no-op off the learn screen.
+    let budget = crate::skill_buyer::live_remaining().unwrap_or(info.skill_point).max(0);
+    let mut owned_ids: HashSet<i32> = info.skill_array.iter().map(|s| s.skill_id).collect();
+    owned_ids.extend(crate::skill_buyer::live_selected_ids());
     let mut hint_by_group_rarity: HashMap<(i32, i32), i32> = HashMap::new();
     for tip in &info.skill_tips_array {
         let key = (tip.group_id, tip.rarity);
@@ -930,8 +936,17 @@ pub fn rating_with_pending(pending: &[i32]) -> i32 {
     let Some(info) = chara_slot().lock().ok().and_then(|s| s.clone()) else {
         return 0;
     };
+    let extra = pending_extra(&info, pending);
+    compute_rating_breakdown(&info, extra).total
+}
+
+/// Rating contributed by `pending` skills on top of `info`'s captured baseline — aptitude-weighted,
+/// skipping anything already owned or non-purchasable. Shared by the live header and by
+/// `recommend`, which must fold the player's own hand-picks into the baseline so the projection
+/// isn't inflated by skills they already selected.
+fn pending_extra(info: &CharaInfo, pending: &[i32]) -> i32 {
     let owned: HashSet<i32> = info.skill_array.iter().map(|s| s.skill_id).collect();
-    let buckets = build_aptitude_buckets(&info);
+    let buckets = build_aptitude_buckets(info);
     let mut extra = 0i32;
     for sid in pending {
         if owned.contains(sid) {
@@ -944,7 +959,7 @@ pub fn rating_with_pending(pending: &[i32]) -> i32 {
         let role = SKILL_ROLES.get(&sid.to_string()).cloned().unwrap_or_default();
         extra += ((grade as f64) * aptitude_multiplier(&role, &buckets)).round() as i32;
     }
-    compute_rating_breakdown(&info, extra).total
+    extra
 }
 
 /// Drop the cached recommendation (the live offered list changed under it). The panel shows
@@ -982,7 +997,12 @@ fn recommend(info: &CharaInfo, only_distance: &str, only_style: &str, preset_id:
             pool.retain(|it| skill_passes_race(it.skill_id, &spec));
         }
     }
-    let current = compute_rating_breakdown(info, 0);
+    // "Current" must mean what the player has RIGHT NOW — captured baseline plus anything they've
+    // already marked on the live screen (those aren't in the captured skill_array yet). Folding it
+    // in here keeps `projected = current + rating_gain` honest; otherwise the optimizer's gain gets
+    // stacked on a stale baseline and over-promises.
+    let live_extra = pending_extra(info, &crate::skill_buyer::live_selected_ids());
+    let current = compute_rating_breakdown(info, live_extra);
     let pool_size = pool.len();
     if pool.is_empty() {
         return RecommendResult {
@@ -1012,7 +1032,7 @@ fn recommend(info: &CharaInfo, only_distance: &str, only_style: &str, preset_id:
         let vb = b.grade as f64 / (b.cost.max(1) as f64);
         vb.partial_cmp(&va).unwrap_or(std::cmp::Ordering::Equal)
     });
-    let projected = compute_rating_breakdown(info, rating_gain);
+    let projected = compute_rating_breakdown(info, live_extra + rating_gain);
     // Verbose: the whole decision in one line — filters, candidate pool, what got bought,
     // SP used, and the rating swing. Answers "why did it pick these / miss that".
     if crate::tools::debug_enabled() {

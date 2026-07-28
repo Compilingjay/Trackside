@@ -92,6 +92,18 @@ pub fn live_spent() -> Option<i32> {
     Some((budget - rem).max(0))
 }
 
+/// SP the player can still spend on the live screen, read straight from the view each pump. This is
+/// the authoritative figure — prefer it over `budget - live_spent()`, whose budget is a high-water
+/// mark. None when off-screen.
+pub fn live_remaining() -> Option<i32> {
+    let rem = REMAINING.load(Ordering::Relaxed);
+    if rem == i32::MIN {
+        None
+    } else {
+        Some(rem.max(0))
+    }
+}
+
 /// The player's rating RIGHT NOW as they hand-pick skills: baseline (captured chara) plus
 /// the grade of everything currently marked for purchase on the live screen. None off-screen.
 pub fn live_current_rating() -> Option<i32> {
@@ -347,7 +359,12 @@ pub fn pump() {
             BUDGET_SP.store(rem, Ordering::Relaxed);
         }
     } else {
+        // Off-screen: clear the live remaining AND the budget high-water mark. BUDGET_SP only ever
+        // ratchets up, so leaving it set made the NEXT career's `live_spent` (= budget - remaining)
+        // report the difference against the richest screen seen this session — inflating the SP
+        // spent in the optimizer window. Reset so each visit establishes its own budget.
         REMAINING.store(i32::MIN, Ordering::Relaxed);
+        BUDGET_SP.store(0, Ordering::Relaxed);
     }
     if SCAN_REQUESTED.swap(false, Ordering::Relaxed) {
         unsafe { run_scan() };
