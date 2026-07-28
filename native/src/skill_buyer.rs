@@ -237,6 +237,12 @@ unsafe extern "C" fn on_playout(this: *mut c_void, mi: *mut c_void) {
         g.clear();
     }
     clear_selection_state();
+    // The learn screen is tearing down — the player pressed Decide (or backed out), so the optimizer
+    // has done its job for this career. Dismiss the window instead of leaving it sitting there reset
+    // to its empty default state, and drop the cached recommendation so the next career can't reopen
+    // onto the finished one's picks. Atomic + short mutex only; no IL2CPP from this detour.
+    crate::skill_advisor::set_window_open(false);
+    crate::skill_advisor::invalidate_result();
     let t = OUT_TRAMP.load(Ordering::Relaxed);
     if t != 0 {
         let orig: unsafe extern "C" fn(*mut c_void, *mut c_void) = std::mem::transmute(t);
