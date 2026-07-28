@@ -1337,6 +1337,20 @@
   "skill_category": 5,
   "disp_order": 10
  },
+ "110351": {
+  "name": "Ticket to Your Dreams!",
+  "rarity": 5,
+  "group_id": 11035,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
  "110371": {
   "name": "Guten Appetit ♪",
   "rarity": 5,
@@ -1383,6 +1397,32 @@
   "need_skill_point": 0,
   "disable_singlemode": 1,
   "tags": [],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
+ "110461": {
+  "name": "α-star*",
+  "rarity": 5,
+  "group_id": 11046,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
+ "110501": {
+  "name": "Hephaestus",
+  "rarity": 5,
+  "group_id": 11050,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
   "icon_id": 20013,
   "skill_category": 5,
   "disp_order": 10
@@ -6213,6 +6253,196 @@
   "skill_category": 2,
   "disp_order": 21770
  },
+ "202201": {
+  "name": "Kawasaki Racecourse ◎",
+  "rarity": 1,
+  "group_id": 20220,
+  "grade_value": 174,
+  "need_skill_point": 90,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 10021,
+  "skill_category": 0,
+  "disp_order": 1381
+ },
+ "202202": {
+  "name": "Kawasaki Racecourse ○",
+  "rarity": 1,
+  "group_id": 20220,
+  "grade_value": 129,
+  "need_skill_point": 70,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 10021,
+  "skill_category": 0,
+  "disp_order": 1382
+ },
+ "202203": {
+  "name": "Kawasaki Racecourse ×",
+  "rarity": 1,
+  "group_id": 20220,
+  "grade_value": -129,
+  "need_skill_point": 40,
+  "disable_singlemode": 1,
+  "tags": [
+   402
+  ],
+  "icon_id": 10024,
+  "skill_category": 0,
+  "disp_order": 1383
+ },
+ "202211": {
+  "name": "Funabashi Racecourse ◎",
+  "rarity": 1,
+  "group_id": 20221,
+  "grade_value": 174,
+  "need_skill_point": 90,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 10021,
+  "skill_category": 0,
+  "disp_order": 1384
+ },
+ "202212": {
+  "name": "Funabashi Racecourse ○",
+  "rarity": 1,
+  "group_id": 20221,
+  "grade_value": 129,
+  "need_skill_point": 70,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 10021,
+  "skill_category": 0,
+  "disp_order": 1385
+ },
+ "202213": {
+  "name": "Funabashi Racecourse ×",
+  "rarity": 1,
+  "group_id": 20221,
+  "grade_value": -129,
+  "need_skill_point": 40,
+  "disable_singlemode": 1,
+  "tags": [
+   402
+  ],
+  "icon_id": 10024,
+  "skill_category": 0,
+  "disp_order": 1386
+ },
+ "202221": {
+  "name": "Morioka Racecourse ◎",
+  "rarity": 1,
+  "group_id": 20222,
+  "grade_value": 174,
+  "need_skill_point": 90,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 10021,
+  "skill_category": 0,
+  "disp_order": 1387
+ },
+ "202222": {
+  "name": "Morioka Racecourse ○",
+  "rarity": 1,
+  "group_id": 20222,
+  "grade_value": 129,
+  "need_skill_point": 70,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 10021,
+  "skill_category": 0,
+  "disp_order": 1388
+ },
+ "202223": {
+  "name": "Morioka Racecourse ×",
+  "rarity": 1,
+  "group_id": 20222,
+  "grade_value": -129,
+  "need_skill_point": 40,
+  "disable_singlemode": 1,
+  "tags": [
+   402
+  ],
+  "icon_id": 10024,
+  "skill_category": 0,
+  "disp_order": 1389
+ },
+ "202231": {
+  "name": "Night Races ◎",
+  "rarity": 1,
+  "group_id": 20223,
+  "grade_value": 174,
+  "need_skill_point": 90,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 10051,
+  "skill_category": 0,
+  "disp_order": 1881
+ },
+ "202232": {
+  "name": "Night Races ○",
+  "rarity": 1,
+  "group_id": 20223,
+  "grade_value": 129,
+  "need_skill_point": 70,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 10051,
+  "skill_category": 0,
+  "disp_order": 1882
+ },
+ "202233": {
+  "name": "Night Races ×",
+  "rarity": 1,
+  "group_id": 20223,
+  "grade_value": -129,
+  "need_skill_point": 40,
+  "disable_singlemode": 1,
+  "tags": [
+   405
+  ],
+  "icon_id": 10054,
+  "skill_category": 0,
+  "disp_order": 1883
+ },
+ "202241": {
+  "name": "Sharp Turns ◎",
+  "rarity": 1,
+  "group_id": 20224,
+  "grade_value": 174,
+  "need_skill_point": 90,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 10051,
+  "skill_category": 0,
+  "disp_order": 1884
+ },
+ "202242": {
+  "name": "Sharp Turns ○",
+  "rarity": 1,
+  "group_id": 20224,
+  "grade_value": 129,
+  "need_skill_point": 70,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 10051,
+  "skill_category": 0,
+  "disp_order": 1885
+ },
+ "202243": {
+  "name": "Sharp Turns ×",
+  "rarity": 1,
+  "group_id": 20224,
+  "grade_value": -129,
+  "need_skill_point": 40,
+  "disable_singlemode": 1,
+  "tags": [
+   405
+  ],
+  "icon_id": 10054,
+  "skill_category": 0,
+  "disp_order": 1886
+ },
  "202251": {
   "name": "Collaborative Graded Races ◎",
   "rarity": 1,
@@ -6236,6 +6466,20 @@
   "icon_id": 10011,
   "skill_category": 0,
   "disp_order": 1888
+ },
+ "202253": {
+  "name": "Collaborative Graded Races ×",
+  "rarity": 1,
+  "group_id": 20225,
+  "grade_value": -129,
+  "need_skill_point": 40,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 10014,
+  "skill_category": 0,
+  "disp_order": 1889
  },
  "202261": {
   "name": "Chance of Victory",
@@ -6261,6 +6505,30 @@
   "skill_category": 2,
   "disp_order": 21790
  },
+ "202271": {
+  "name": "Can't Keep Me Down",
+  "rarity": 2,
+  "group_id": 20227,
+  "grade_value": 508,
+  "need_skill_point": 180,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20012,
+  "skill_category": 2,
+  "disp_order": 21800
+ },
+ "202272": {
+  "name": "Comeback",
+  "rarity": 1,
+  "group_id": 20227,
+  "grade_value": 217,
+  "need_skill_point": 180,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 20011,
+  "skill_category": 2,
+  "disp_order": 21810
+ },
  "202281": {
   "name": "Full Speed!",
   "rarity": 2,
@@ -6285,6 +6553,30 @@
   "skill_category": 3,
   "disp_order": 21830
  },
+ "202291": {
+  "name": "Crystal Clear",
+  "rarity": 2,
+  "group_id": 20229,
+  "grade_value": 508,
+  "need_skill_point": 150,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20012,
+  "skill_category": 2,
+  "disp_order": 21840
+ },
+ "202292": {
+  "name": "Rational",
+  "rarity": 1,
+  "group_id": 20229,
+  "grade_value": 217,
+  "need_skill_point": 150,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 20011,
+  "skill_category": 2,
+  "disp_order": 21850
+ },
  "202301": {
   "name": "Dancer in the Dirt",
   "rarity": 2,
@@ -6308,6 +6600,18 @@
   "icon_id": 20011,
   "skill_category": 4,
   "disp_order": 21870
+ },
+ "202303": {
+  "name": "Down in the Dirt ×",
+  "rarity": 1,
+  "group_id": 20230,
+  "grade_value": -262,
+  "need_skill_point": 100,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20014,
+  "skill_category": 4,
+  "disp_order": 21875
  },
  "202311": {
   "name": "Be the Center!",
@@ -6417,6 +6721,18 @@
   "skill_category": 0,
   "disp_order": 21950
  },
+ "202344": {
+  "name": "Muddy ×",
+  "rarity": 1,
+  "group_id": 20234,
+  "grade_value": -129,
+  "need_skill_point": 50,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 10014,
+  "skill_category": 0,
+  "disp_order": 21955
+ },
  "202351": {
   "name": "Dust Cloud Idol",
   "rarity": 2,
@@ -6512,6 +6828,30 @@
   "icon_id": 20011,
   "skill_category": 2,
   "disp_order": 22030
+ },
+ "202391": {
+  "name": "Givin' It 1000%",
+  "rarity": 2,
+  "group_id": 20239,
+  "grade_value": 508,
+  "need_skill_point": 180,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20012,
+  "skill_category": 2,
+  "disp_order": 22040
+ },
+ "202392": {
+  "name": "Mad Dash",
+  "rarity": 1,
+  "group_id": 20239,
+  "grade_value": 217,
+  "need_skill_point": 180,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 20011,
+  "skill_category": 2,
+  "disp_order": 22050
  },
  "202401": {
   "name": "Flash Forward",
@@ -6884,6 +7224,30 @@
   "icon_id": 20141,
   "skill_category": 4,
   "disp_order": 31011
+ },
+ "210071": {
+  "name": "I Wanna Win with You",
+  "rarity": 2,
+  "group_id": 21007,
+  "grade_value": 633,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20152,
+  "skill_category": 4,
+  "disp_order": 31012
+ },
+ "210072": {
+  "name": "On the Way to Our Dream",
+  "rarity": 1,
+  "group_id": 21007,
+  "grade_value": 263,
+  "need_skill_point": 200,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 20151,
+  "skill_category": 4,
+  "disp_order": 31013
  },
  "210081": {
   "name": "Past My Limits",
@@ -7999,6 +8363,20 @@
   "skill_category": 5,
   "disp_order": 30
  },
+ "900981": {
+  "name": "Luck Runs My Way",
+  "rarity": 1,
+  "group_id": 90098,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
  "910011": {
   "name": "Dazzl'n ♪ Diver",
   "rarity": 1,
@@ -8251,6 +8629,20 @@
   "skill_category": 5,
   "disp_order": 30
  },
+ "910351": {
+  "name": "Ticket to Your Dreams!",
+  "rarity": 1,
+  "group_id": 91035,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
  "910371": {
   "name": "Guten Appetit ♪",
   "rarity": 1,
@@ -8297,6 +8689,32 @@
   "need_skill_point": 200,
   "disable_singlemode": 1,
   "tags": [],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
+ "910461": {
+  "name": "α-star*",
+  "rarity": 1,
+  "group_id": 91046,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
+ "910501": {
+  "name": "Hephaestus",
+  "rarity": 1,
+  "group_id": 91050,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
   "icon_id": 20011,
   "skill_category": 5,
   "disp_order": 30
