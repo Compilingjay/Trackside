@@ -16,15 +16,35 @@ Sources (Global master.mdb is plain SQLite; only meta/assets are encrypted):
 import json
 import os
 import sqlite3
+import sys
 
 MDB = os.path.expandvars(r"%USERPROFILE%\AppData\LocalLow\Cygames\Umamusume\master\master.mdb")
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
+# --check: verify the bundled data matches master.mdb WITHOUT writing. Used as a release guard so a
+# release can never silently ship skill tables that a game update has left behind. Exit 1 = stale.
+CHECK = False
+STALE = []
+
 
 def dump(name, obj):
     path = os.path.join(DATA, name)
+    new = json.dumps(obj, ensure_ascii=False, indent=1)
+    if CHECK:
+        try:
+            with open(path, encoding="utf-8") as f:
+                old = f.read()
+        except FileNotFoundError:
+            old = None
+        if old != new:
+            n_old = len(json.loads(old)) if old else 0
+            STALE.append(f"{name}: bundled {n_old} -> live {len(obj)}")
+            print(f"  STALE  {name}: bundled {n_old} entries, master.mdb has {len(obj)}")
+        else:
+            print(f"  ok     {name}: {len(obj)} entries")
+        return
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=1)
+        f.write(new)
     print(f"  {name}: {len(obj)} entries")
 
 
@@ -109,8 +129,23 @@ def main():
             for r in con.execute("SELECT id, min_value, max_value FROM single_mode_rank ORDER BY id")
         ],
     )
+    if CHECK:
+        if STALE:
+            print("\nBUNDLED SKILL DATA IS STALE — a game update added content the optimizer can't see:")
+            for s in STALE:
+                print(f"  {s}")
+            print("\nFix: python refresh_skill_data.py   (then rebuild)")
+            sys.exit(1)
+        print("bundled data matches master.mdb.")
+        return
     print("done — rebuild the DLL to bake the new data in.")
 
 
 if __name__ == "__main__":
+    CHECK = "--check" in sys.argv
+    if not os.path.exists(MDB):
+        # No game install on this machine — we can't verify. Warn, don't block (the release guard
+        # treats only a real staleness mismatch as fatal).
+        print(f"WARNING: master.mdb not found at {MDB} — skipping skill-data {'check' if CHECK else 'refresh'}.")
+        sys.exit(0)
     main()

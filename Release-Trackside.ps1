@@ -126,6 +126,21 @@ if ($dirty -and -not $Force) {
     Write-Host $dirty
     Fail "Working tree is dirty. Commit first (or pass -Force)."
 }
+
+# Skill-data staleness guard. data\*.json are baked into the DLL via include_str!, so skills added by
+# a game update are invisible to the optimizer until they're regenerated. Nothing forced that to
+# happen, so the bundle silently drifted 33 skills behind before v1.0.7. Verify against the live
+# master.mdb; no-ops with a warning on a machine without the game installed.
+if (-not $SkipBuild) {
+    $refresh = Join-Path $RepoDir 'refresh_skill_data.py'
+    if (Test-Path -LiteralPath $refresh) {
+        & python $refresh --check
+        if ($LASTEXITCODE -ne 0) {
+            if ($Force) { Write-Host "  (skill data stale — continuing because -Force)" -ForegroundColor Yellow }
+            else { Fail "Bundled skill data is behind master.mdb (see above). Run: python refresh_skill_data.py — then commit and re-run." }
+        }
+    }
+}
 if (& git -C $RepoDir tag --list $Tag) {
     Write-Host "  NOTE: tag $Tag already exists locally — it will be reused." -ForegroundColor Yellow
 }
