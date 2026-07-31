@@ -80,7 +80,7 @@ const ORBITRON_TTF: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "
 // Keys the user can bind to open/close the menu (settings.toggle_key indexes this).
 // The FIRST 14 keep their order/index for backward-compat with saved binds; the rest are
 // appended (imgui-rs 0.11 exposes no A-Z letter keys, so those can't be bound here).
-const MENU_KEYS: [(&str, imgui::Key); 49] = [
+const MENU_KEYS: [(&str, imgui::Key); 52] = [
     ("Insert", imgui::Key::Insert),
     ("Home", imgui::Key::Home),
     ("End", imgui::Key::End),
@@ -130,6 +130,9 @@ const MENU_KEYS: [(&str, imgui::Key); 49] = [
     ("Scroll Lock", imgui::Key::ScrollLock),
     ("Pause", imgui::Key::Pause),
     ("`", imgui::Key::GraveAccent),
+    ("Mouse Left", imgui::Key::MouseLeft),
+    ("Mouse Right", imgui::Key::MouseRight),
+    ("Mouse Middle", imgui::Key::MouseMiddle),
 ];
 
 fn menu_key_idx() -> usize {
