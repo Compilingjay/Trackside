@@ -69,6 +69,30 @@ $ProxyDir  = Join-Path $RepoDir 'proxy'
 $ORACLE_SENTINEL = 'event_oracle'   # present ONLY in private builds
 
 function Fail($m) { Write-Host "  ERROR: $m" -ForegroundColor Red; exit 1 }
+
+# Run gh and judge success by its EXIT CODE, not by whether it touched stderr. gh writes ordinary
+# progress and "release not found" results to stderr, and with $ErrorActionPreference='Stop' (set
+# above) Windows PowerShell promotes ANY native-command stderr into a TERMINATING error — even with
+# 2>$null — which aborts the script on a perfectly successful upload. Ported from
+# Release-TracksidePrivate.ps1, where this exact bug was already fixed.
+$script:GhExit = 0
+function Invoke-Gh {
+    param([Parameter(ValueFromRemainingArguments = $true)]$GhArgs)
+    # Guard the comma-operator footgun: an unquoted `--json a,b` arrives as a nested array and would
+    # splat to gh as multiple arguments, failing confusingly. Catch it loudly. Quote it: --json 'a,b'.
+    foreach ($a in $GhArgs) {
+        if ($a -is [System.Array]) {
+            Fail "Invoke-Gh got an array argument ([$($a -join ',')]) — an unquoted comma-list. Quote it: --json 'field1,field2'."
+        }
+    }
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $out = & gh @GhArgs 2>&1
+        $script:GhExit = $LASTEXITCODE
+        return (($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) -join "`n")
+    } finally { $ErrorActionPreference = $prev }
+}
 function Step($m) { Write-Host ""; Write-Host "== $m" -ForegroundColor Cyan }
 
 # FNV-1a/64 in C# — ulong math is unchecked (wraps) and this runs over ~10MB per DLL, which
@@ -150,7 +174,7 @@ if (& git -C $RepoDir tag --list $Tag) {
 # that, so re-uploading would prompt every existing user with a "hotfix" for a build containing no
 # actual changes. Bump the version instead; -SkipBuild re-uploads the staged artifacts untouched.
 if (-not $SkipBuild -and -not $Force -and (Get-Command gh -ErrorAction SilentlyContinue)) {
-    $pub = (& gh release view $Tag --json isDraft 2>$null)
+    $pub = Invoke-Gh release view $Tag --json isDraft
     if ($pub -and ($pub | ConvertFrom-Json).isDraft -eq $false) {
         Fail @"
 Release $Tag is already PUBLISHED, and rebuilding would change the DLL hash.
@@ -311,17 +335,24 @@ if ($Publish) {
     if ($LASTEXITCODE -ne 0) { Fail "pushing the tag failed." }
 }
 
-$existing = (& gh release view $Tag --json tagName 2>$null)
+$existing = Invoke-Gh release view $Tag --json tagName
 if ($existing) {
     Write-Host "  release $Tag already exists — uploading assets with --clobber." -ForegroundColor Yellow
-    & gh release upload $Tag @assets --clobber
-    if ($LASTEXITCODE -ne 0) { Fail "asset upload failed." }
+    $null = Invoke-Gh release upload $Tag @assets --clobber
+    if ($GhExit -ne 0) { Fail "asset upload failed." }
+    # A release that already exists is still a DRAFT unless we flip it. Without this, re-running with
+    # -Publish uploads the assets and then reports success while silently leaving it unpublished.
+    if ($Publish) {
+        $null = Invoke-Gh release edit $Tag --draft=false
+        if ($GhExit -ne 0) { Fail "publishing the existing draft failed." }
+        Write-Host "  flipped the existing draft to published." -ForegroundColor Green
+    }
 } else {
     $ghArgs = @('release','create',$Tag,'--title',"Trackside $Tag",'--notes-file',(Join-Path $StageDir 'NOTES.md'))
     if (-not $Publish) { $ghArgs += '--draft' }
     $ghArgs += $assets
-    & gh @ghArgs
-    if ($LASTEXITCODE -ne 0) { Fail "gh release create failed." }
+    $null = Invoke-Gh @ghArgs
+    if ($GhExit -ne 0) { Fail "gh release create failed." }
 }
 
 Write-Host ""
