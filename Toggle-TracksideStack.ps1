@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Enable or disable the whole mod stack (Trackside overlay + Hachimi +
     Hakuraku/horseACT) for Umamusume Pretty Derby in one go.

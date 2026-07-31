@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Cut a PUBLIC Trackside release: build both variants, hash, package, tag, and publish.
 
@@ -72,8 +72,8 @@ function Fail($m) { Write-Host "  ERROR: $m" -ForegroundColor Red; exit 1 }
 
 # Run gh and judge success by its EXIT CODE, not by whether it touched stderr. gh writes ordinary
 # progress and "release not found" results to stderr, and with $ErrorActionPreference='Stop' (set
-# above) Windows PowerShell promotes ANY native-command stderr into a TERMINATING error — even with
-# 2>$null — which aborts the script on a perfectly successful upload. Ported from
+# above) Windows PowerShell promotes ANY native-command stderr into a TERMINATING error - even with
+# 2>$null - which aborts the script on a perfectly successful upload. Ported from
 # Release-TracksidePrivate.ps1, where this exact bug was already fixed.
 $script:GhExit = 0
 function Invoke-Gh {
@@ -82,7 +82,7 @@ function Invoke-Gh {
     # splat to gh as multiple arguments, failing confusingly. Catch it loudly. Quote it: --json 'a,b'.
     foreach ($a in $GhArgs) {
         if ($a -is [System.Array]) {
-            Fail "Invoke-Gh got an array argument ([$($a -join ',')]) — an unquoted comma-list. Quote it: --json 'field1,field2'."
+            Fail "Invoke-Gh got an array argument ([$($a -join ',')]) - an unquoted comma-list. Quote it: --json 'field1,field2'."
         }
     }
     $prev = $ErrorActionPreference

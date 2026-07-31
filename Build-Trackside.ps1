@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Build the Trackside overlay DLL and deploy it into the game folder, for fast
     dev iteration.
