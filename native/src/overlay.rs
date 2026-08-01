@@ -982,7 +982,17 @@ impl ImguiRenderLoop for HeavenOverlay {
 
         // Edge-detect the toggle key: one physical press = one toggle (no key-repeat,
         // which otherwise flips the menu rapidly while the key is held).
-        let key_down = ui.is_key_down(MENU_KEYS[menu_key_idx()].1);
+        let toggle_key = MENU_KEYS[menu_key_idx()].1;
+        // A MOUSE bind must not fire while imgui owns the pointer, or every click on the overlay's
+        // own controls would toggle the menu shut underneath the user. Bound to Mouse Left that is
+        // unrecoverable in-game: each attempt to reopen and fix the bind is itself a left-click.
+        // Keyboard binds are deliberately NOT gated - Insert should still close the menu while the
+        // cursor rests over it.
+        let is_mouse_bind = matches!(
+            toggle_key,
+            imgui::Key::MouseLeft | imgui::Key::MouseRight | imgui::Key::MouseMiddle
+        );
+        let key_down = ui.is_key_down(toggle_key) && !(is_mouse_bind && ui.io().want_capture_mouse);
         if SUPPRESS_TOGGLE.load(std::sync::atomic::Ordering::Relaxed) {
             // A key was just bound and is still physically held — swallow toggles until it's
             // released, so the press that bound it doesn't also close the menu.
