@@ -501,12 +501,13 @@ fn drive_apply() {
     // Read this item's next-tier cost + the live SP (RemainingPoint) and skip the click if it doesn't
     // fit — so Apply Optimal can never spend past 0. Only gates when we have a live SP reading.
     let rem = REMAINING.load(Ordering::Relaxed);
-    // COST INSTRUMENTATION. `item_cost` is the GAME's price for this click; `planned_cost` is what
-    // the optimizer budgeted. A plan that totals exactly the budget yet still runs out of SP before
-    // the tail means we UNDER-PRICE something. Comparing the two per click identifies which skills,
-    // and whether the cause is hint discounts or chain-tier accounting. Debug-gated: free when off.
-    if crate::tools::debug_enabled() {
-        let game = unsafe { item_cost(idx) };
+    // COST INSTRUMENTATION rides INSIDE the same `rem != i32::MIN` guard, and shares its single
+    // `item_cost` read. That guard is not optional: `item_cost` walks live IL2CPP objects and
+    // invokes get_text(), so it is only safe once a live SP reading proves the instance is good.
+    // A first cut of this logging called it unconditionally whenever debug was on and HUNG the game
+    // on the first click — main and render threads both stalled. Never read the item outside this.
+    let game = if rem != i32::MIN { unsafe { item_cost(idx) } } else { i32::MAX };
+    if rem != i32::MIN && crate::tools::debug_enabled() {
         let ours = crate::skill_advisor::planned_cost(sid);
         let tag = match ours {
             Some(o) if o != game => format!("MISPRICED by {}", game - o),
@@ -519,7 +520,7 @@ fn drive_apply() {
         ));
         CHARGED.fetch_add(game, Ordering::Relaxed);
     }
-    if rem != i32::MIN && unsafe { item_cost(idx) } > rem {
+    if rem != i32::MIN && game > rem {
         crate::tools::debug(&format!("[skill_buyer] Apply: skip item {idx} — costs more than {rem} SP left"));
         if APPLY_QUEUE.get_or_init(|| Mutex::new(Vec::new())).lock().map(|q| q.is_empty()).unwrap_or(true) {
             set_status(format!("Applied what fits — {rem} SP left. Press Decide."));
