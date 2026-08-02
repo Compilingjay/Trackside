@@ -349,10 +349,18 @@ pub fn pump() {
                 })
                 .unwrap_or(false);
             if changed {
-                crate::tools::debug(&format!("[skill_buyer] offered list changed -> {n} skills; recomputing"));
-                // Real set change (first capture / skill bought) → recompute seamlessly
-                // instead of leaving a cleared result behind.
-                crate::skill_advisor::request_recommend();
+                // NOT while our own apply driver is clicking: those changes are US, and recomputing
+                // against a budget our own clicks consumed is what collapsed the recommendation.
+                if apply_in_flight() {
+                    crate::tools::debug(&format!(
+                        "[skill_buyer] offered list changed -> {n} skills; apply in flight, not recomputing"
+                    ));
+                } else {
+                    crate::tools::debug(&format!("[skill_buyer] offered list changed -> {n} skills; recomputing"));
+                    // Real set change (first capture / skill bought) → recompute seamlessly
+                    // instead of leaving a cleared result behind.
+                    crate::skill_advisor::request_recommend();
+                }
             }
         }
         // Live reactive snapshot: RemainingPoint (SP left) drives the SP-spent bar in real
@@ -407,6 +415,22 @@ pub fn driver_ready() -> bool {
 // Apply driver state: a queue of (item_index) clicks, fired one per N frames so the game's
 // UI updates (and RemainingPoint decrements) between clicks — a burst would race the game.
 static APPLY_QUEUE: OnceLock<Mutex<Vec<i32>>> = OnceLock::new();
+
+/// True while OUR apply driver still has clicks queued.
+///
+/// The driver clicks one item every APPLY_GAP_FRAMES, and each click makes the game deduct SP and
+/// rebind `_itemList` — which the pump sees as "offered list changed" and turns into a recompute.
+/// That recompute then budgets from `live_remaining()`, which our own previous clicks just reduced,
+/// so every click shrinks the next recommendation. Observed live: 1833 -> 1155 -> 1084 SP across
+/// three recomputes 124ms and 21ms apart (the driver's cadence, far too fast to be a human), against
+/// a true budget of 4059. Suppressing recomputes while we are the one clicking breaks that loop.
+pub fn apply_in_flight() -> bool {
+    !APPLY_QUEUE
+        .get_or_init(|| Mutex::new(Vec::new()))
+        .lock()
+        .map(|q| q.is_empty())
+        .unwrap_or(true)
+}
 static APPLY_COOLDOWN: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
 const APPLY_GAP_FRAMES: i32 = 6; // ~100ms at 60fps — smooth, game keeps up
 
