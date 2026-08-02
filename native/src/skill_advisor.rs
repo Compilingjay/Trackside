@@ -866,6 +866,18 @@ pub fn draw_filter_row(ui: &hudhook::imgui::Ui, w: f32) -> bool {
     changed
 }
 
+/// What the optimizer budgeted for one skill in the current recommendation, if it planned it.
+///
+/// Paired with the game's own `item_cost` in the apply driver, this identifies a mispriced skill:
+/// the plan can total exactly the budget yet still run out of SP before the tail, which means our
+/// price for something sits below what the game charges.
+pub fn planned_cost(skill_id: i32) -> Option<i32> {
+    result_slot().lock().ok().and_then(|g| {
+        g.as_ref()
+            .and_then(|r| r.selected.iter().find(|i| i.skill_id == skill_id).map(|i| i.cost))
+    })
+}
+
 pub fn last_result() -> Option<RecommendResult> {
     result_slot().lock().ok().and_then(|r| r.clone())
 }

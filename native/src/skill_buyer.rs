@@ -414,7 +414,7 @@ pub fn driver_ready() -> bool {
 
 // Apply driver state: a queue of (item_index) clicks, fired one per N frames so the game's
 // UI updates (and RemainingPoint decrements) between clicks — a burst would race the game.
-static APPLY_QUEUE: OnceLock<Mutex<Vec<i32>>> = OnceLock::new();
+static APPLY_QUEUE: OnceLock<Mutex<Vec<(i32, i32)>>> = OnceLock::new(); // (item index, skill id)
 
 /// True while OUR apply driver still has clicks queued.
 ///
@@ -432,6 +432,8 @@ pub fn apply_in_flight() -> bool {
         .unwrap_or(true)
 }
 static APPLY_COOLDOWN: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
+/// Total the GAME charged across this apply run (debug instrumentation only).
+static CHARGED: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
 const APPLY_GAP_FRAMES: i32 = 6; // ~100ms at 60fps — smooth, game keeps up
 
 fn run_apply() {
@@ -451,16 +453,16 @@ fn run_apply() {
     // contains every tier from the recommendation's chain; duplicates on the same index
     // become repeated clicks on that item (the ◎-via-○ double-press).
     let index_of = unsafe { build_index_map() };
-    let mut queue: Vec<i32> = Vec::new();
+    let mut queue: Vec<(i32, i32)> = Vec::new();
     let mut hit = 0;
     for sid in &ids {
         if let Some(&idx) = index_of.get(sid) {
-            queue.push(idx);
+            queue.push((idx, *sid));
             hit += 1;
         } else {
             // A chain's lower tier shares its group's item — click that item again.
             if let Some(idx) = unsafe { group_index_for(sid, &index_of) } {
-                queue.push(idx);
+                queue.push((idx, *sid));
                 hit += 1;
             }
         }
@@ -475,6 +477,7 @@ fn run_apply() {
         *q = queue;
     }
     APPLY_COOLDOWN.store(0, Ordering::Relaxed);
+    CHARGED.store(0, Ordering::Relaxed);
     set_status(format!("Applying {hit}\u{2026} then press Decide."));
 }
 
@@ -485,7 +488,7 @@ fn drive_apply() {
         return;
     }
     APPLY_COOLDOWN.store(APPLY_GAP_FRAMES, Ordering::Relaxed);
-    let idx = {
+    let (idx, sid) = {
         let Ok(mut q) = APPLY_QUEUE.get_or_init(|| Mutex::new(Vec::new())).lock() else { return };
         if q.is_empty() {
             return;
@@ -498,6 +501,24 @@ fn drive_apply() {
     // Read this item's next-tier cost + the live SP (RemainingPoint) and skip the click if it doesn't
     // fit — so Apply Optimal can never spend past 0. Only gates when we have a live SP reading.
     let rem = REMAINING.load(Ordering::Relaxed);
+    // COST INSTRUMENTATION. `item_cost` is the GAME's price for this click; `planned_cost` is what
+    // the optimizer budgeted. A plan that totals exactly the budget yet still runs out of SP before
+    // the tail means we UNDER-PRICE something. Comparing the two per click identifies which skills,
+    // and whether the cause is hint discounts or chain-tier accounting. Debug-gated: free when off.
+    if crate::tools::debug_enabled() {
+        let game = unsafe { item_cost(idx) };
+        let ours = crate::skill_advisor::planned_cost(sid);
+        let tag = match ours {
+            Some(o) if o != game => format!("MISPRICED by {}", game - o),
+            Some(_) => "ok".to_string(),
+            None => "not in plan (chain tier?)".to_string(),
+        };
+        crate::tools::debug(&format!(
+            "[apply-cost] skill {sid} item {idx}: game={game} ours={} left={rem} - {tag}",
+            ours.map(|o| o.to_string()).unwrap_or_else(|| "-".into())
+        ));
+        CHARGED.fetch_add(game, Ordering::Relaxed);
+    }
     if rem != i32::MIN && unsafe { item_cost(idx) } > rem {
         crate::tools::debug(&format!("[skill_buyer] Apply: skip item {idx} — costs more than {rem} SP left"));
         if APPLY_QUEUE.get_or_init(|| Mutex::new(Vec::new())).lock().map(|q| q.is_empty()).unwrap_or(true) {
@@ -507,6 +528,14 @@ fn drive_apply() {
     }
     unsafe { click_plus(idx) };
     if APPLY_QUEUE.get_or_init(|| Mutex::new(Vec::new())).lock().map(|q| q.is_empty()).unwrap_or(true) {
+        if crate::tools::debug_enabled() {
+            let planned = crate::skill_advisor::last_result().map(|r| r.spent).unwrap_or(0);
+            let charged = CHARGED.load(Ordering::Relaxed);
+            crate::tools::debug(&format!(
+                "[apply-cost] TOTAL: planned={planned} charged={charged} delta={}",
+                charged - planned
+            ));
+        }
         set_status("Applied — press the game's Decide to confirm.");
     }
 }
