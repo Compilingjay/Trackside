@@ -329,10 +329,27 @@ fn load_file() -> Settings {
         .unwrap_or_default()
 }
 
+/// Persist settings. Serialises under the caller's lock; does the DISK WRITE OFF-THREAD.
+///
+/// This is the fix for the freeze that had both threads stalling together. All 61 setters call this
+/// while holding the settings mutex, and the overlay reads that same mutex from every toggle's
+/// getter on every frame. So a slow `fs::write` - the game folder is on G:, and antivirus or disk
+/// contention makes that unpredictable - blocked the render thread, which blocked Present, which
+/// stalled the main thread. Both frozen, no crash, process still answering the OS.
+///
+/// It also explains the symptoms that never fit a single culprit: the hang followed whatever panel
+/// happened to be drawing (hence careerlog, aboutlayout, careerlog), it triggered while NAVIGATING
+/// the overlay rather than in any one feature, and it long predates this week's work.
+///
+/// Serialisation stays inline because it is in-memory and fast. Only the write moves. WRITE_LOCK
+/// keeps writes ordered with respect to each other without ever being touched by a reader.
 fn write_file(s: &Settings) {
-    if let Ok(j) = serde_json::to_string_pretty(s) {
+    static WRITE_LOCK: Mutex<()> = Mutex::new(());
+    let Ok(j) = serde_json::to_string_pretty(s) else { return };
+    std::thread::spawn(move || {
+        let _g = WRITE_LOCK.lock();
         let _ = std::fs::write(settings_path(), j);
-    }
+    });
 }
 
 /// Apply persisted settings at startup. Call after all modules are installed.

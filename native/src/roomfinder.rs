@@ -398,10 +398,18 @@ fn load_from_disk() -> Filters {
         Err(_) => Filters::default(),
     }
 }
+/// Persist the filters. Serialises inline, writes OFF-THREAD - same reason as settings::write_file.
+///
+/// `set_filters` calls this while holding `store()`, and `filters()` reads that same lock from the
+/// overlay panel every frame AND from `process_list` on the main thread each hunt cycle. Writing to
+/// disk under it meant a slow write stalled both.
 fn save_to_disk(f: &Filters) {
-    if let Ok(json) = serde_json::to_vec_pretty(f) {
+    static WRITE_LOCK: Mutex<()> = Mutex::new(());
+    let Ok(json) = serde_json::to_vec_pretty(f) else { return };
+    std::thread::spawn(move || {
+        let _g = WRITE_LOCK.lock();
         let _ = std::fs::write(json_path(), json);
-    }
+    });
 }
 
 fn log(msg: &str) {
