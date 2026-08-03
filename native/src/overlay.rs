@@ -899,7 +899,10 @@ impl ImguiRenderLoop for HeavenOverlay {
         {
             // Only engage the intro path when a custom intro is actually present (intro_full.bin).
             // With no media we never mute the title BGM, draw, or show the START button.
-            let has_video = crate::intro_player::has_video();
+            // Streamer mode suppresses the intro too: it draws EARLIER than the main gate below
+            // (it must, to cover the game's splash logos), so it needs its own check or a stream
+            // would open on a Trackside video.
+            let has_video = crate::intro_player::has_video() && !crate::settings::streamer_mode();
             // Auto-start once per launch, the moment we can actually draw (device captured).
             if has_video
                 && !self.intro_auto_started
@@ -1011,6 +1014,22 @@ impl ImguiRenderLoop for HeavenOverlay {
             }
         }
         self.toggle_was_down = key_down;
+
+        // STREAMER MODE. Everything below this point is a visible sign of Trackside - ambient
+        // windows (GL advisor, Oracle, skill optimizer), the hunter alert, affinity badges, the
+        // update prompt, the first-launch hint, freecam telemetry, the follow marker and the menu
+        // itself. With the menu CLOSED we draw none of it, so a stream shows a stock game.
+        //
+        // The menu is the one exception, and it has to be: it is the only way back. Hiding it too
+        // would strand the user with no way to turn the mode off short of editing settings by hand.
+        // So the toggle bind (handled ABOVE this gate, deliberately) still opens the menu - you just
+        // do not press it on camera.
+        //
+        // Nothing functional is disabled: capture, logging and automation keep running. The point is
+        // a clean stream, not a kill switch.
+        if crate::settings::streamer_mode() && !self.show {
+            return;
+        }
 
         // Opponent-hunter "TARGET FOUND" alert — drawn over everything, menu open or not.
         draw_hunter_alert(ui);

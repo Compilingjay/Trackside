@@ -401,6 +401,12 @@ pub fn model() -> Vec<Tab> {
             blurb: "Built-in stand-ins for horseACT and CarrotBlender — no external DLLs needed.",
             controls: vec![
                 Ctrl::Toggle { id: "rex", label: "Export races (horseACT)", get: crate::settings::race_export, set: crate::settings::set_race_export },
+                Ctrl::Toggle {
+                    id: "streamer",
+                    label: "Streamer mode (hide all overlays)",
+                    get: crate::settings::streamer_mode,
+                    set: crate::settings::set_streamer_mode,
+                },
                 Ctrl::Toggle { id: "vex", label: "Export veterans (Hakuraku)", get: crate::settings::umas_export, set: crate::settings::set_umas_export },
                 Ctrl::Toggle { id: "cbr", label: "Companion feed (CarrotBlender)", get: crate::friendlyplugins::bridge_enabled, set: crate::friendlyplugins::set_bridge_enabled },
                 Ctrl::Custom(Custom::UmaExtract),

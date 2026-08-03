@@ -128,6 +128,14 @@ pub struct Settings {
     // a few hundred KB per career, no credentials written).
     #[serde(default = "default_true")]
     pub career_log: bool,
+<<<<<<< HEAD
+=======
+    /// Streamer mode: hide every on-screen sign of Trackside (see overlay::render).
+    #[serde(default)]
+    pub streamer_mode: bool,
+    /// Which PVP event's stat targets the GL optimizer plans toward ("cm17" | "cm18").
+    pub gl_target: String,
+>>>>>>> 9d20e41 (overlay: streamer mode - hide every on-screen sign of Trackside)
     // Race freecam enabled.
     #[serde(default)]
     pub freecam: bool,
@@ -281,6 +289,11 @@ impl Default for Settings {
             classic_menu: false,
             oracle: false,
             career_log: true,
+<<<<<<< HEAD
+=======
+            streamer_mode: false,
+            gl_target: "cm18".to_string(),
+>>>>>>> 9d20e41 (overlay: streamer mode - hide every on-screen sign of Trackside)
             freecam: false,
             telemetry: true,
             tele_main: true,
@@ -350,6 +363,42 @@ pub fn apply_on_boot() {
     APPLIED.store(true, Ordering::Relaxed);
 }
 
+<<<<<<< HEAD
+=======
+/// Streamer mode - hide every on-screen sign of Trackside without uninstalling it.
+///
+/// Deliberately NOT a functional kill switch: capture, logging and automation keep running, because
+/// the point is to keep a stream clean, not to stop working mid-session. Only the visuals go.
+pub fn streamer_mode() -> bool {
+    cache().lock().map(|c| c.streamer_mode).unwrap_or(false)
+}
+pub fn set_streamer_mode(on: bool) {
+    if let Ok(mut c) = cache().lock() {
+        c.streamer_mode = on;
+        write_file(&c);
+    }
+}
+
+/// Stat targets the GL optimizer plans toward.
+///
+/// The solver scores a career against a TARGET VECTOR, so which event you are building for changes
+/// the advice — CM17 is a 2000m dirt race wanting Stamina 901, CM18 a 1600m turf race wanting only
+/// 601 but Power/Wit 1200. Same run, different best move.
+pub fn gl_targets() -> gl_engine::valuation::Targets {
+    let which = cache().lock().map(|c| c.gl_target.clone()).unwrap_or_else(|_| "cm18".into());
+    match which.as_str() {
+        "cm17" => gl_engine::valuation::Targets::CM17,
+        _ => gl_engine::valuation::Targets::CM18,
+    }
+}
+pub fn set_gl_target(which: &str) {
+    if let Ok(mut c) = cache().lock() {
+        c.gl_target = which.to_string();
+        write_file(&c);
+    }
+}
+
+>>>>>>> 9d20e41 (overlay: streamer mode - hide every on-screen sign of Trackside)
 /// Career Log — persist each training career to <game>/trackside-careers/ (default on).
 pub fn career_log() -> bool {
     cache().lock().map(|c| c.career_log).unwrap_or(true)
