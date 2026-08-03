@@ -47,6 +47,10 @@ pub struct Room {
     pub surface: i32,   // 1 turf, 2 dirt, 0 unknown
     pub season: i32,    // 1 spring … 4 winter, 0 unknown
     pub weather: i32,   // 1 sunny, 2 cloudy, 3 rainy, 4 snowy, 0 unknown
+    /// Ground condition straight from the game (get_GroundCondition). 0 = unread/unknown.
+    /// NOT yet filtered on: the enum's base is unconfirmed, and assuming it would repeat the
+    /// mistake that left season/weather silently matching nothing.
+    pub ground_cond: i32,
     pub members: i32,   // current entries, -1 unknown
     pub capacity: i32,  // max entries, -1 unknown
     pub remain: i32,    // open slots straight from RoomData.GetRemainEntryNum(), -1 unknown
@@ -921,8 +925,18 @@ mod bridge {
     // Per-entry getters. Confirmed on RoomData unless noted; candidates (parent class,
     // unconfirmed) marked (?). il2cpp method resolution walks the parent chain, so
     // ExhibitionRaceDataBase getters resolve from the RoomData instance class.
-    const G_SEASON: &[&str] = &["get_Season", "get_SeasonType"]; // (?)
-    const G_WEATHER: &[&str] = &["get_Weather", "get_WeatherType"]; // (?)
+    // CONFIRMED from the scan: RoomData : ExhibitionRaceDataBase, which declares get_Season(),
+    // get_Weather() and get_GroundCondition() over ObscuredInt backing fields. Field fallbacks are
+    // the plain names seen on Gallop.ChampionsRoomInfo, for the case where a list yields that
+    // shape instead - the previous `&[]` meant a getter miss silently produced 0 ("unknown"), which
+    // `matches` then treats as "no room qualifies" for any ACTIVE season/weather filter.
+    const G_SEASON: &[&str] = &["get_Season", "get_SeasonType"];
+    const G_SEASON_F: &[&str] = &["season", "_season"];
+    const G_WEATHER: &[&str] = &["get_Weather", "get_WeatherType"];
+    const G_WEATHER_F: &[&str] = &["weather", "_weather"];
+    /// Ground condition (firm/good/soft/heavy). Present on the game side but never read until now.
+    const G_GROUND: &[&str] = &["get_GroundCondition"];
+    const G_GROUND_F: &[&str] = &["ground_condition", "_groundCondition"];
     const G_HOST_NAME: &[&str] = &["get_Name", "get_TrainerName"]; // on UserData (?)
     const G_CAPACITY: &[&str] = &["get_EntryNum", "get_MaxEntryNum"]; // (?)
     // Master course row (Gallop.MasterRaceCourseSet.RaceCourseSet): getters first, then raw
@@ -1198,14 +1212,29 @@ mod bridge {
         };
         // Uma bans: the game's own IsRestrictChara() -> Boolean (confirmed method).
         let uma_restricted = unbox_i64(invoke0(e, k, "IsRestrictChara")).map(|b| (b != 0) as i32).unwrap_or(-1);
+        // Read once so the diagnostic below reports exactly what the filter will compare against.
+        let season = read_num(e, k, G_SEASON, G_SEASON_F);
+        let weather = read_num(e, k, G_WEATHER, G_WEATHER_F);
+        let ground = read_num(e, k, G_GROUND, G_GROUND_F);
+        // CONDITIONS DIAGNOSTIC (debug-gated). The season/weather filter has never matched, and
+        // there are two candidate causes that look identical from outside: the getters returning
+        // nothing (None -> 0 -> treated as "unknown", which fails any ACTIVE filter), or the game's
+        // enum being 0-based so a real value of 0 is indistinguishable from "unknown". `None` vs
+        // `Some(0)` tells those apart, so log the raw Option rather than the unwrapped number.
+        if crate::tools::debug_enabled() {
+            super::log(&format!(
+                "[room-cond] room {room_id}: season={season:?} weather={weather:?} ground={ground:?}"
+            ));
+        }
         Some(Room {
             room_id,
             host,
             track_id,
             distance,
             surface,
-            season: read_num(e, k, G_SEASON, &[]).unwrap_or(0) as i32,
-            weather: read_num(e, k, G_WEATHER, &[]).unwrap_or(0) as i32,
+            season: season.unwrap_or(0) as i32,
+            weather: weather.unwrap_or(0) as i32,
+            ground_cond: ground.unwrap_or(0) as i32,
             members: unbox_i64(invoke0(e, k, "get_CurrentEntryNum")).unwrap_or(-1) as i32,
             capacity: read_num(e, k, G_CAPACITY, &[]).unwrap_or(-1) as i32,
             remain: unbox_i64(invoke0(e, k, "GetRemainEntryNum")).unwrap_or(-1) as i32,
