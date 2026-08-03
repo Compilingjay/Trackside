@@ -47,17 +47,33 @@ static EVENT_ENABLED: AtomicBool = AtomicBool::new(true); // EVENT / story timel
 static SHOP_ENABLED: AtomicBool = AtomicBool::new(true); // PRO SHOP buy/use animations
 static RIVAL_ENABLED: AtomicBool = AtomicBool::new(true); // rival-race entry "RIVAL <name>" intro
 
+/// Streamer mode suppresses every skip.
+///
+/// A viewer cannot see the overlay, but they CAN see events being skipped, races resolving
+/// instantly and menus flying past - which gives the game away just as plainly. Suppressing at the
+/// `is_*_enabled` gates rather than by clearing the settings means the user's real choices are
+/// untouched and come straight back when the mode is switched off.
+fn suppressed() -> bool {
+    crate::settings::streamer_mode()
+}
+
 // Training
 pub fn set_enabled(on: bool) {
     SKIP_ENABLED.store(on, Ordering::Relaxed);
 }
 pub fn is_enabled() -> bool {
+    if suppressed() {
+        return false;
+    }
     SKIP_ENABLED.load(Ordering::Relaxed)
 }
 pub fn set_train_enabled(on: bool) {
     SKIP_ENABLED.store(on, Ordering::Relaxed);
 }
 pub fn is_train_enabled() -> bool {
+    if suppressed() {
+        return false;
+    }
     SKIP_ENABLED.load(Ordering::Relaxed)
 }
 // Events
@@ -65,6 +81,9 @@ pub fn set_event_enabled(on: bool) {
     EVENT_ENABLED.store(on, Ordering::Relaxed);
 }
 pub fn is_event_enabled() -> bool {
+    if suppressed() {
+        return false;
+    }
     EVENT_ENABLED.load(Ordering::Relaxed)
 }
 // Pro Shop (buy/use performance animations)
@@ -72,6 +91,9 @@ pub fn set_shop_enabled(on: bool) {
     SHOP_ENABLED.store(on, Ordering::Relaxed);
 }
 pub fn is_shop_enabled() -> bool {
+    if suppressed() {
+        return false;
+    }
     SHOP_ENABLED.load(Ordering::Relaxed)
 }
 // Rival-race entry intro ("RIVAL <name>" splash before a rival race)
@@ -79,6 +101,9 @@ pub fn set_rival_enabled(on: bool) {
     RIVAL_ENABLED.store(on, Ordering::Relaxed);
 }
 pub fn is_rival_enabled() -> bool {
+    if suppressed() {
+        return false;
+    }
     RIVAL_ENABLED.load(Ordering::Relaxed)
 }
 pub fn set_scene_enabled(_on: bool) {}
@@ -268,6 +293,9 @@ pub fn set_race_result_enabled(on: bool) {
     result::RACE_RESULT_ENABLED.store(on, Ordering::Relaxed);
 }
 pub fn is_race_result_enabled() -> bool {
+    if suppressed() {
+        return false;
+    }
     result::RACE_RESULT_ENABLED.load(Ordering::Relaxed)
 }
 

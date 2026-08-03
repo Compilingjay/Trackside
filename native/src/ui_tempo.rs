@@ -27,6 +27,12 @@ static TRAMP: AtomicUsize = AtomicUsize::new(0);
 static DETOUR: OnceLock<RawDetour> = OnceLock::new();
 
 pub fn tempo() -> f32 {
+    // Streamer mode forces real time. A sped-up UI is one of the most obvious tells on a stream,
+    // and the multiplier is read per frame, so returning 1.0 here suppresses it without touching
+    // the user's configured speed - which returns the moment the mode is switched off.
+    if crate::settings::streamer_mode() {
+        return 1.0;
+    }
     f32::from_bits(TEMPO.load(Ordering::Relaxed))
 }
 
