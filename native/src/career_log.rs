@@ -222,13 +222,44 @@ pub fn stats() -> (u64, u64) {
 pub fn latest() -> Option<String> {
     LATEST.lock().ok().and_then(|l| l.clone())
 }
-/// How many career files are on disk.
+/// How many career files are on disk. CACHED - see below.
+///
+/// This is called from the overlay panel, which redraws on the RENDER THREAD every frame. The
+/// uncached version ran `create_dir_all` plus a full `read_dir` enumeration (up to MAX_CAREERS =
+/// 300 entries, each with an extension check) at frame rate, against the game's install directory.
+/// That is blocking I/O on the render thread, and it deadlocked the game: the render thread stalled
+/// in the filesystem while the main thread waited on it, both frozen with no crash. The hang
+/// watchdog caught it as `last UI step: 'ui:careerlog'`.
+///
+/// The count only changes when a career starts, so a stale value for a second is harmless. Refresh
+/// is time-bounded and the scan happens at most once per REFRESH interval no matter how many frames
+/// ask.
 pub fn files_on_disk() -> usize {
-    std::fs::read_dir(dir())
-        .map(|rd| {
-            rd.filter_map(|e| e.ok())
-                .filter(|e| e.path().extension().map(|x| x == "jsonl").unwrap_or(false))
-                .count()
-        })
-        .unwrap_or(0)
+    use std::sync::atomic::AtomicUsize;
+    const REFRESH: std::time::Duration = std::time::Duration::from_secs(3);
+    static CACHED: AtomicUsize = AtomicUsize::new(0);
+    static LAST: Mutex<Option<std::time::Instant>> = Mutex::new(None);
+
+    let due = {
+        let Ok(mut last) = LAST.lock() else { return CACHED.load(Ordering::Relaxed) };
+        let due = last.map(|t| t.elapsed() >= REFRESH).unwrap_or(true);
+        if due {
+            *last = Some(std::time::Instant::now());
+        }
+        due
+    };
+    if due {
+        // `dir()` is deliberately NOT used here: it calls create_dir_all, and a syscall per frame
+        // was half the original problem. Read-only path, and a missing folder just counts as zero.
+        let path = crate::paths::dll_dir().join("trackside-careers");
+        let n = std::fs::read_dir(path)
+            .map(|rd| {
+                rd.filter_map(|e| e.ok())
+                    .filter(|e| e.path().extension().map(|x| x == "jsonl").unwrap_or(false))
+                    .count()
+            })
+            .unwrap_or(0);
+        CACHED.store(n, Ordering::Relaxed);
+    }
+    CACHED.load(Ordering::Relaxed)
 }
