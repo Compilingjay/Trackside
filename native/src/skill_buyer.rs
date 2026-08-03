@@ -509,10 +509,15 @@ fn drive_apply() {
     let game = if rem != i32::MIN { unsafe { item_cost(idx) } } else { i32::MAX };
     if rem != i32::MIN && crate::tools::debug_enabled() {
         let ours = crate::skill_advisor::planned_cost(sid);
+        // Our plan prices a CHAIN cumulatively (the o->@ item carries both tiers); the game charges
+        // each tier separately as its own click. So `ours > game` on a final tier is EXPECTED, not a
+        // mispricing - measured over a full career, every chain satisfied ours == tier1 + tier2
+        // exactly and the run totalled planned == charged. Only `game > ours` can starve the tail.
         let tag = match ours {
-            Some(o) if o != game => format!("MISPRICED by {}", game - o),
+            Some(o) if game > o => format!("UNDER-PRICED by {}", game - o),
+            Some(o) if o > game => format!("chain: ours {o} is cumulative across tiers"),
             Some(_) => "ok".to_string(),
-            None => "not in plan (chain tier?)".to_string(),
+            None => "earlier tier of a chain (costed under its final tier)".to_string(),
         };
         crate::tools::debug(&format!(
             "[apply-cost] skill {sid} item {idx}: game={game} ours={} left={rem} - {tag}",
