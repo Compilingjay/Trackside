@@ -165,6 +165,21 @@ if (-not $SkipBuild) {
         }
     }
 }
+# Overlay menu map. Regenerate so docs-internal/menu-map.md matches the menu being shipped, and FAIL
+# if the generator cannot attribute every section to a tab. A stale or partial map is how a panel
+# ends up in the wrong section unnoticed - Streamer mode shipped under "Companion plugins" for
+# exactly that reason. ASCII-only messages here on purpose: this file is read by Windows PowerShell
+# 5.1, which mis-decodes non-ASCII without a BOM and turns a stray smart quote into a parse error.
+if (-not $SkipBuild) {
+    $menumap = Join-Path $RepoDir 'native/tools/gen_menu_map.py'
+    if (Test-Path -LiteralPath $menumap) {
+        & python $menumap --write
+        if ($LASTEXITCODE -ne 0) {
+            if ($Force) { Write-Host "  (menu map incomplete - continuing because -Force)" -ForegroundColor Yellow }
+            else { Fail "Menu map generator could not attribute every section (see above). Fix native/tools/gen_menu_map.py, then re-run." }
+        }
+    }
+}
 if (& git -C $RepoDir tag --list $Tag) {
     Write-Host "  NOTE: tag $Tag already exists locally — it will be reused." -ForegroundColor Yellow
 }
