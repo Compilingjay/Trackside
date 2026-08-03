@@ -544,7 +544,17 @@ pub(crate) mod bridge {
                 let hid = *((boxed as usize + ho) as *const i32);
                 Some((hid ^ key) as i64)
             }
-            _ => None,
+            // ENUMS. An IL2CPP enum boxes as its underlying integer, but its class NAME is the enum's
+            // own (e.g. "Season"), so a name match alone returns None here - which is exactly why the
+            // Room Finder's season/weather/ground filters never matched: get_Season() returns
+            // Gallop.ExhibitionRaceDefine.Season, read as None -> 0 -> "unknown" -> no room qualifies.
+            // Every enum carries a `value__` field holding that integer, so key off its presence
+            // rather than maintaining a list of enum names. Strictly additive: a class without
+            // `value__` still yields None, exactly as before.
+            _ => {
+                let off = il2cpp::field_offset(k, "value__")?;
+                Some(*((boxed as usize + off) as *const i32) as i64)
+            }
         }
     }
 
