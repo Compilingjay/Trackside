@@ -374,6 +374,18 @@ pub fn model() -> Vec<Tab> {
         controls: vec![Ctrl::Custom(Custom::AboutLayout)],
     });
     interface.push(Section {
+        title: "Streamer mode",
+        icon: '\u{E04B}',
+        blurb: "Hide every on-screen sign of Trackside. Your menu key still opens this menu so you \
+                can switch it back off - nothing else draws.",
+        controls: vec![Ctrl::Toggle {
+            id: "streamer",
+            label: "Hide all overlays",
+            get: crate::settings::streamer_mode,
+            set: crate::settings::set_streamer_mode,
+        }],
+    });
+    interface.push(Section {
         title: "Affinity numbers",
         icon: '\u{E8C9}',
         blurb: "Show the exact succession affinity on the Legacy Select screen.",
@@ -401,12 +413,6 @@ pub fn model() -> Vec<Tab> {
             blurb: "Built-in stand-ins for horseACT and CarrotBlender — no external DLLs needed.",
             controls: vec![
                 Ctrl::Toggle { id: "rex", label: "Export races (horseACT)", get: crate::settings::race_export, set: crate::settings::set_race_export },
-                Ctrl::Toggle {
-                    id: "streamer",
-                    label: "Streamer mode (hide all overlays)",
-                    get: crate::settings::streamer_mode,
-                    set: crate::settings::set_streamer_mode,
-                },
                 Ctrl::Toggle { id: "vex", label: "Export veterans (Hakuraku)", get: crate::settings::umas_export, set: crate::settings::set_umas_export },
                 Ctrl::Toggle { id: "cbr", label: "Companion feed (CarrotBlender)", get: crate::friendlyplugins::bridge_enabled, set: crate::friendlyplugins::set_bridge_enabled },
                 Ctrl::Custom(Custom::UmaExtract),
