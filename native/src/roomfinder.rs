@@ -45,11 +45,12 @@ pub struct Room {
     pub track_id: i32,  // racecourse id (10001 Sapporo … 10101 Ooi), 0 unknown
     pub distance: i32,  // metres, 0 unknown
     pub surface: i32,   // 1 turf, 2 dirt, 0 unknown
-    pub season: i32,    // 1 spring … 4 winter, 0 unknown
-    pub weather: i32,   // 1 sunny, 2 cloudy, 3 rainy, 4 snowy, 0 unknown
-    /// Ground condition straight from the game (get_GroundCondition). 0 = unread/unknown.
-    /// NOT yet filtered on: the enum's base is unconfirmed, and assuming it would repeat the
-    /// mistake that left season/weather silently matching nothing.
+    /// Game enum: 0 = Random (host left it unset), 1 Spring, 2 Summer, 3 Fall, 4 Winter,
+    /// 5 Cherry Blossom. -1 = unread. Values cross-checked against Hakuraku's own maps.
+    pub season: i32,
+    /// 0 = Random, 1 Sunny, 2 Cloudy, 3 Rainy, 4 Snowy. -1 = unread.
+    pub weather: i32,
+    /// 0 = Random, 1 Good, 2 Soft, 3 Hard, 4 Bad. -1 = unread.
     pub ground_cond: i32,
     pub members: i32,   // current entries, -1 unknown
     pub capacity: i32,  // max entries, -1 unknown
@@ -92,6 +93,9 @@ pub struct Filters {
     pub surface: i32,
     pub season: i32,
     pub weather: i32,
+    /// Ground condition filter, same +1 encoding. serde(default) for older filter files.
+    #[serde(default)]
+    pub ground_cond: i32,
     /// Require at least this many open slots (0 = don't care).
     pub min_open: i32,
     /// Only rooms with NO career-rank entry restriction. serde(default) so filter files
@@ -120,6 +124,7 @@ impl Default for Filters {
             surface: 0,
             season: 0,
             weather: 0,
+            ground_cond: 0,
             min_open: 1,
             no_rank_restrict: false,
             no_uma_restrict: false,
@@ -134,6 +139,41 @@ impl Filters {
     /// True when `r` passes every active filter. Unknown room values (0/-1) fail an ACTIVE
     /// filter — never match on data we couldn't read (acting on a guess would be worse
     /// than a missed room).
+    /// Which filter rejected this room, or None if it matched. Same predicates as [`matches`], in
+    /// the same order - the point is to say WHY a hunt is finding nothing, since "no match" alone
+    /// cannot distinguish a too-narrow filter from a broken one. That ambiguity is exactly what hid
+    /// the conditions bug for a whole release.
+    pub fn reject_reason(&self, r: &Room) -> Option<&'static str> {
+        if self.track_id != 0 && r.track_id != self.track_id {
+            return Some("track");
+        }
+        if self.dist_cat != 0 && r.dist_cat() != self.dist_cat {
+            return Some("distance");
+        }
+        if self.surface != 0 && r.surface != self.surface {
+            return Some("surface");
+        }
+        if self.season != 0 && r.season != self.season - 1 {
+            return Some("season");
+        }
+        if self.weather != 0 && r.weather != self.weather - 1 {
+            return Some("weather");
+        }
+        if self.ground_cond != 0 && r.ground_cond != self.ground_cond - 1 {
+            return Some("ground");
+        }
+        if self.min_open > 0 && !matches!(r.open_slots(), Some(n) if n >= self.min_open) {
+            return Some("open-slots");
+        }
+        if self.no_rank_restrict && r.rank_restricted != 0 {
+            return Some("rank-restricted");
+        }
+        if self.no_uma_restrict && r.uma_restricted != 0 {
+            return Some("uma-banned");
+        }
+        None
+    }
+
     pub fn matches(&self, r: &Room) -> bool {
         if self.track_id != 0 && r.track_id != self.track_id {
             return false;
@@ -144,10 +184,16 @@ impl Filters {
         if self.surface != 0 && r.surface != self.surface {
             return false;
         }
-        if self.season != 0 && r.season != self.season {
+        // Filters use a +1 encoding so 0 can keep meaning "Any" like every other filter, while
+        // still letting the user pick the game's value 0 ("Random"). Filter N>0 == game value N-1.
+        // An unread room field (-1) matches no specific filter, which is the intended fail-safe.
+        if self.season != 0 && r.season != self.season - 1 {
             return false;
         }
-        if self.weather != 0 && r.weather != self.weather {
+        if self.weather != 0 && r.weather != self.weather - 1 {
+            return false;
+        }
+        if self.ground_cond != 0 && r.ground_cond != self.ground_cond - 1 {
             return false;
         }
         if self.min_open > 0 {
@@ -182,6 +228,9 @@ impl Filters {
         }
         if self.weather != 0 {
             parts.push(weather_name(self.weather).to_string());
+        }
+        if self.ground_cond != 0 {
+            parts.push(ground_name(self.ground_cond).to_string());
         }
         if self.min_open > 0 {
             parts.push(format!("{}+ open", self.min_open));
@@ -235,21 +284,39 @@ pub fn surface_name(s: i32) -> &'static str {
     }
 }
 pub fn season_name(s: i32) -> &'static str {
+    // +1 encoded (0 = Any). Game values cross-checked against Hakuraku's TRACK_DETAIL_ICON_LABELS,
+    // including value 5 = Cherry Blossom, which our old "1..4 spring..winter" mapping had no slot
+    // for and which appears in live listings.
     match s {
-        1 => "Spring",
-        2 => "Summer",
-        3 => "Autumn",
-        4 => "Winter",
+        1 => "Random",
+        2 => "Spring",
+        3 => "Summer",
+        4 => "Fall",
+        5 => "Winter",
+        6 => "Cherry Blossom",
         _ => "Any season",
     }
 }
 pub fn weather_name(w: i32) -> &'static str {
     match w {
-        1 => "Sunny",
-        2 => "Cloudy",
-        3 => "Rainy",
-        4 => "Snowy",
+        1 => "Random",
+        2 => "Sunny",
+        3 => "Cloudy",
+        4 => "Rainy",
+        5 => "Snowy",
         _ => "Any weather",
+    }
+}
+
+/// Ground condition name, +1 encoded. Game values from Hakuraku's GROUND_CONDITION_NAME_MAP.
+pub fn ground_name(g: i32) -> &'static str {
+    match g {
+        1 => "Random",
+        2 => "Good",
+        3 => "Soft",
+        4 => "Hard",
+        5 => "Bad",
+        _ => "Any ground",
     }
 }
 
@@ -794,6 +861,21 @@ fn process_list() {
     }
 
     let f = filters();
+    // Why did this cycle find nothing? A bare "no match" cannot tell a too-narrow filter from a
+    // broken one, which is precisely how the conditions bug survived a release. One histogram line
+    // per cycle names the predicate doing the rejecting.
+    {
+        let mut hist: std::collections::BTreeMap<&'static str, u32> = Default::default();
+        for r in &rooms {
+            if let Some(why) = f.reject_reason(r) {
+                *hist.entry(why).or_default() += 1;
+            }
+        }
+        if !hist.is_empty() {
+            let parts: Vec<String> = hist.iter().map(|(k, v)| format!("{k}={v}")).collect();
+            log(&format!("check {n}: {} rooms, rejected by {}", rooms.len(), parts.join(" ")));
+        }
+    }
     if let Some(hit) = rooms.iter().find(|r| f.matches(r)) {
         HUNTING.store(false, Ordering::Relaxed);
         NEXT_MS.store(u64::MAX, Ordering::Relaxed);
@@ -1240,9 +1322,12 @@ mod bridge {
             track_id,
             distance,
             surface,
-            season: season.unwrap_or(0) as i32,
-            weather: weather.unwrap_or(0) as i32,
-            ground_cond: ground.unwrap_or(0) as i32,
+            // -1, NOT 0: zero is a REAL value here ("Random" - the host left the condition
+            // unset), and it is the most common one in live listings. Using 0 as the
+            // unread sentinel made every such room look unknown and fail any active filter.
+            season: season.map(|v| v as i32).unwrap_or(-1),
+            weather: weather.map(|v| v as i32).unwrap_or(-1),
+            ground_cond: ground.map(|v| v as i32).unwrap_or(-1),
             members: unbox_i64(invoke0(e, k, "get_CurrentEntryNum")).unwrap_or(-1) as i32,
             capacity: read_num(e, k, G_CAPACITY, &[]).unwrap_or(-1) as i32,
             remain: unbox_i64(invoke0(e, k, "GetRemainEntryNum")).unwrap_or(-1) as i32,
