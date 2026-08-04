@@ -851,6 +851,7 @@ impl ImguiRenderLoop for HeavenOverlay {
     }
 
     fn render(&mut self, ui: &mut Ui) {
+        crate::crashlog::frame_tick();
         // Diagnostic: detect the inter-frame gap (main-thread stalls) now, and measure Heaven's own
         // render cost when this scope drops at the end of the frame.
         let _lp = crate::loadprof::frame();
@@ -1596,6 +1597,11 @@ impl HeavenOverlay {
                                     ui.text_colored(DIM, sec.blurb);
                                 }
                                 for c in &sec.controls {
+                                    // Name whatever control is DRAWING for the hang watchdog: a static str store,
+                                    // no allocation, no IL2CPP, no locks (render-thread rule).
+                                    if let Ctrl::Custom(cu) = c {
+                                        crate::crashlog::ui_step(cu.step_name());
+                                    }
                                     match c {
                                         Ctrl::Toggle { id, label, get, set } => {
                                             let g = *get;
@@ -1977,6 +1983,11 @@ impl HeavenOverlay {
                             let _wrap = ui.push_text_wrap_pos();
                             ui.text_colored(DIM, sec.title);
                             for c in &sec.controls {
+                                // Name whatever control is DRAWING for the hang watchdog: a static str store,
+                                // no allocation, no IL2CPP, no locks (render-thread rule).
+                                if let Ctrl::Custom(cu) = c {
+                                    crate::crashlog::ui_step(cu.step_name());
+                                }
                                 match c {
                                     Ctrl::Toggle { id, label, get, set } => {
                                         let g = *get;

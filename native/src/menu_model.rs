@@ -79,6 +79,34 @@ pub enum Custom {
     Credits,         // Ko-fi / GitHub / changelog / version / author
 }
 
+impl Custom {
+    /// Stable name for the hang watchdog's render-thread breadcrumb ("what was drawing").
+    pub fn step_name(self) -> &'static str {
+        match self {
+            Custom::Fps => "ui:fps",
+            Custom::Freecam => "ui:freecam",
+            Custom::KeyBinds => "ui:keybinds",
+            Custom::TeamTrials => "ui:teamtrials",
+            Custom::TtPadder => "ui:ttpadder",
+            Custom::TtHunter => "ui:tthunter",
+            Custom::Followers => "ui:followers",
+            Custom::RoomFinder => "ui:roomfinder",
+            Custom::SkillAdvisor => "ui:skilladvisor",
+            Custom::CareerLog => "ui:careerlog",
+            Custom::ResetRun => "ui:resetrun",
+            Custom::ScreenProbe => "ui:screenprobe",
+            Custom::UmaExtract => "ui:umaextract",
+            Custom::IconDump => "ui:icondump",
+            Custom::Affinity => "ui:affinity",
+            Custom::Intro => "ui:intro",
+            Custom::Updates => "ui:updates",
+            Custom::AboutLayout => "ui:aboutlayout",
+            Custom::Credits => "ui:credits",
+        }
+    }
+}
+
+
 pub struct Section {
     pub title: &'static str,
     /// MDL2 glyph (drawn with the icon font by the premium renderer; classic ignores it).

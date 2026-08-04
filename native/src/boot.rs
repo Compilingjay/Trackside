@@ -104,6 +104,7 @@ pub fn spawn() {
         // Arm the crash detector before installing our hooks, so a fault in any of them is
         // logged with a breadcrumb to trackside-crash.log.
         crate::crashlog::install();
+        crate::crashlog::spawn_hang_watchdog();
 
         // Active-scene probe (gates the intro player on the title screen) + intro-song
         // audio worker + BGM mute API. Private (`banner`) build only; the video player's
