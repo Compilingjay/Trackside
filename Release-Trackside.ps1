@@ -31,6 +31,11 @@
     Publishing is opt-in. Without -Publish you get a DRAFT release you can review and
     publish from the GitHub UI; the tag is created locally but not pushed.
 
+    PARTIAL FAILURE RULE: if any step fails, fix the cause and RE-RUN THIS SCRIPT - it is
+    idempotent (an existing release re-uploads with --clobber). NEVER hand-finish a release with
+    ad-hoc gh calls: v1.0.8 shipped missing trackside.dll and Trackside+Hachimi.zip exactly that
+    way, breaking the standard-install updater until it was caught.
+
 .PARAMETER Notes
     Release-notes markdown. Default: release-v<version>\NOTES.md (a release needs notes —
     the in-game updater renders them as the changelog).
@@ -368,6 +373,26 @@ if ($existing) {
     $ghArgs += $assets
     $null = Invoke-Gh @ghArgs
     if ($GhExit -ne 0) { Fail "gh release create failed." }
+}
+
+# --- asset completeness vs the previous release ------------------------------
+# Catches a partial upload no matter how it happened. Compares this release against the previous
+# published one; anything the last release shipped that this one lacks fails the run. When an
+# asset is REMOVED deliberately (e.g. dropping the Hachimi variant), edit this check in the same
+# commit that removes the asset from staging.
+$relJson = Invoke-Gh release list --limit 10 --json tagName,isDraft
+if ($GhExit -eq 0 -and $relJson) {
+    $prevTag = ($relJson | ConvertFrom-Json) | Where-Object { -not $_.isDraft -and $_.tagName -ne $Tag } |
+        Select-Object -First 1 -ExpandProperty tagName
+    if ($prevTag) {
+        $prevAssets = @(((Invoke-Gh release view $prevTag --json assets | ConvertFrom-Json).assets | ForEach-Object { $_.name }))
+        $curAssets  = @(((Invoke-Gh release view $Tag    --json assets | ConvertFrom-Json).assets | ForEach-Object { $_.name }))
+        $missing = @($prevAssets | Where-Object { $curAssets -notcontains $_ })
+        if ($missing.Count) {
+            Fail "release $Tag is MISSING assets that $prevTag shipped: $($missing -join ', ')"
+        }
+        Write-Host "  asset set verified against $prevTag ($($curAssets.Count) assets)" -ForegroundColor Green
+    }
 }
 
 Write-Host ""
