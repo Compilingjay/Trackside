@@ -1838,6 +1838,18 @@ impl HeavenOverlay {
                                         Ctrl::Custom(Custom::SkillAdvisor) => {
                                             crate::skill_advisor::draw_panel(ui, cw);
                                         }
+                                        Ctrl::Custom(Custom::ResetRun) => {
+                                            reset_run_panel(ui);
+                                        }
+                                        Ctrl::Custom(Custom::ScreenProbe) => {
+                                            draw_screen_probe(ui);
+                                        }
+                                        Ctrl::Custom(Custom::ResetRun) => {
+                                            reset_run_panel(ui);
+                                        }
+                                        Ctrl::Custom(Custom::ScreenProbe) => {
+                                            draw_screen_probe(ui);
+                                        }
                                         Ctrl::Custom(Custom::CareerLog) => {
                                             career_log_panel(ui);
                                         }
@@ -3386,6 +3398,67 @@ fn draw_icon_dump_panel(ui: &Ui) {
 /// Veterans data.json export (UmaExtractor format): button + LIVE status line. The roster is
 /// captured from the Veteran List response packet; the button writes it verbatim.
 /// Career Log — enable toggle plus what's been captured so far.
+fn reset_run_panel(ui: &Ui) {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    /// When the confirm was armed (ms since process start). 0 = idle.
+    static ARMED_AT: AtomicU64 = AtomicU64::new(0);
+    const ARM_TIMEOUT_MS: u64 = 5_000;
+
+    let now = crate::tools::now_ms();
+    let armed_at = ARMED_AT.load(Ordering::Relaxed);
+    let armed = armed_at != 0 && now.saturating_sub(armed_at) < ARM_TIMEOUT_MS;
+    if armed_at != 0 && !armed {
+        ARMED_AT.store(0, Ordering::Relaxed); // timed out - back to the safe label
+    }
+
+    if crate::reset_run::is_pending() {
+        ui.text_colored(GOOD, "Resetting\u{2026}");
+        // The flow has MANUAL hops (press Career, open the Friends slot) whose instructions arrive
+        // via the status line - hiding it while pending would hide the very text that tells the
+        // player what the driver is waiting for.
+        let msg = crate::reset_run::last_status();
+        if !msg.is_empty() {
+            ui.text_colored(DIM, msg);
+        }
+        return;
+    }
+
+    if armed {
+        if ui.button("Are you sure?") {
+            ARMED_AT.store(0, Ordering::Relaxed);
+            crate::reset_run::request();
+        }
+        ui.same_line();
+        ui.text_colored(DIM, "click again to give up this career");
+    } else if ui.button("Reset Run") {
+        ARMED_AT.store(now, Ordering::Relaxed);
+        crate::reset_run::clear_status();
+    }
+
+    // Report the outcome. Without this the button is indistinguishable from a no-op: every result
+    // went to trackside-logs, which nobody reads mid-career.
+    let msg = crate::reset_run::last_status();
+    if !msg.is_empty() {
+        let colour = if msg.starts_with("Confirm") { GOOD } else { DIM };
+        ui.text_colored(colour, msg);
+    }
+}
+
+/// Dev screen probe. Logs the live screen's classes and their clickable methods.
+///
+/// Gated on verbose logging: it is a dev tool, and its output only goes to the log that toggle
+/// enables. Costly by nature - FindObjectsOfType walks every live object once per class name
+/// tested - so it is on-demand only and must never be called per-frame.
+fn draw_screen_probe(ui: &Ui) {
+    if !crate::diag::enabled() {
+        return; // dev tool; verbose logging is the gate
+    }
+    if ui.button("Probe screen") {
+        crate::reset_run::probe_screen();
+    }
+    ui.text_colored(DIM, "Logs the current screen's class and buttons to trackside-logs.");
+}
+
 fn career_log_panel(ui: &Ui) {
     let mut on = crate::settings::career_log();
     if ui.checkbox("Save my careers to disk", &mut on) {

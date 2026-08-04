@@ -275,6 +275,9 @@ pub fn spawn() {
         {
             let r = crate::reset::install();
             log(&format!("soft reset: {r}"));
+            // Reset Run resolves its retire methods here too, so a game update that renames them
+            // shows up in the boot log rather than at the moment someone clicks a destructive button.
+            log(&crate::reset_run::install());
             crate::diag::record_install("soft reset", &r);
             // Global hotkey (default Ctrl+Shift+R) to fire the soft reset even if the UI is soft-locked.
             let (vk, mods) = crate::settings::soft_reset_hotkey();

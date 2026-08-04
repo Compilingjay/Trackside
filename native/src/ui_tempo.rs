@@ -70,7 +70,9 @@ unsafe extern "C" fn update_hook(update_type: i32, mut dt: f32, mut idt: f32, mi
     crate::crashlog::step("tween:padder-pump");
     crate::padder::pump(); // Team Trials team-edit apply (main thread = safe for RequestBase.Send)
     crate::crashlog::step("tween:reset-pump");
-    crate::reset::poll(); // soft-reset main-thread execution point (guarded, no-op if idle)
+    crate::reset::poll();
+    crate::crashlog::step("tween:resetrun-pump");
+    crate::reset_run::poll(); // Reset Run: give-up + next career (main thread; no-op if idle) // soft-reset main-thread execution point (guarded, no-op if idle)
     crate::crashlog::step("tween:affinity-pump");
     crate::affinity::poll(); // affinity-badge "is a dialog open" gate sample
     crate::crashlog::step("tween:pruner-pump");

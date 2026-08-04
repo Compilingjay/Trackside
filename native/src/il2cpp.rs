@@ -842,3 +842,95 @@ unsafe fn cstr_to_string(p: *const c_char) -> String {
         CStr::from_ptr(p).to_string_lossy().into_owned()
     }
 }
+
+// ── helpers ported from the private branch with Reset Run (generic infrastructure) ──
+
+/// Parameter TYPE NAMES of a resolved method, in order. Used by the checked-invoke helpers to
+/// verify a call site's argument list matches the method it resolved, instead of trusting it.
+pub fn method_params_of(m: Method) -> Vec<String> {
+    let mut out = Vec::new();
+    if m.is_null() {
+        return out;
+    }
+    unsafe {
+        let n = (api().method_get_param_count)(m);
+        for i in 0..n {
+            let t = (api().method_get_param)(m, i);
+            let tn = if t.is_null() { std::ptr::null_mut() } else { (api().type_get_name)(t) };
+            out.push(if tn.is_null() {
+                String::new()
+            } else {
+                std::ffi::CStr::from_ptr(tn).to_string_lossy().into_owned()
+            });
+        }
+    }
+    out
+}
+
+/// Resolve an overload by its EXACT parameter type names (as `type_get_name` spells them,
+/// e.g. `["UnityEngine.Object"]` or `["System.Type"]`).
+///
+/// This exists because `method(klass, name, argc)` picks the FIRST name+argc match, and on
+/// overload sets like `UnityEngine.Object.Instantiate` that can be the GENERIC `Instantiate<T>(T)`
+/// — whose method pointer is shared code expecting a hidden type context; calling it like the
+/// non-generic overload reads garbage and crashes inside UnityPlayer. A generic's parameter
+/// spells as its type variable ("T"), so exact-name matching structurally excludes generics.
+pub fn method_with_param_types(klass: Class, name: &str, want: &[&str]) -> Method {
+    if klass.is_null() {
+        return std::ptr::null_mut();
+    }
+    unsafe {
+        let mut iter: *mut c_void = std::ptr::null_mut();
+        loop {
+            let m = (api().class_get_methods)(klass, &mut iter);
+            if m.is_null() {
+                return std::ptr::null_mut();
+            }
+            let np = (api().method_get_name)(m);
+            if np.is_null() {
+                continue;
+            }
+            if std::ffi::CStr::from_ptr(np).to_string_lossy() != name {
+                continue;
+            }
+            let pc = (api().method_get_param_count)(m) as usize;
+            if pc != want.len() {
+                continue;
+            }
+            let mut ok = true;
+            for i in 0..pc {
+                let t = (api().method_get_param)(m, i as u32);
+                let tn = if t.is_null() { std::ptr::null() } else { (api().type_get_name)(t) };
+                let spelled = if tn.is_null() {
+                    String::new()
+                } else {
+                    std::ffi::CStr::from_ptr(tn).to_string_lossy().into_owned()
+                };
+                if spelled != want[i] {
+                    ok = false;
+                    break;
+                }
+            }
+            if ok {
+                return m;
+            }
+        }
+    }
+}
+
+/// Like [`runtime_invoke`], but also reports the managed exception instead of discarding it.
+///
+/// Use this for any game call that can throw (asset loading is the big one: a missing bundle
+/// raises FileNotFoundException). A direct `method_pointer` cast CANNOT catch a managed throw —
+/// the exception unwinds straight past the native frame, so no code after the call runs and no
+/// log line is ever written. Going through the runtime turns that into a value we can inspect.
+pub unsafe fn runtime_invoke_exc(
+    m: Method,
+    this: Object,
+    args: &mut [*mut c_void],
+) -> (Object, Object) {
+    let mut exc: Object = std::ptr::null_mut();
+    let argp = if args.is_empty() { std::ptr::null_mut() } else { args.as_mut_ptr() };
+    let ret = (api().runtime_invoke)(m, this, argp, &mut exc);
+    (ret, exc)
+}
